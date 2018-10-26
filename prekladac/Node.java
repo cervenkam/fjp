@@ -34,12 +34,23 @@ public class Node extends ArrayList<Node>{
 	private String terminal_string = null;
 	/* neterminalni symbol pro cislo */
 	private Integer terminal_int = null;
-	public Node(Type type,Node parent){
+	/* deep zanoreni */
+	private final int deep;
+	/* vytvoreni korenu */
+	public Node(){
+		this(Type.PROGRAM,null,0);
+	}
+	/* vytvoreni ostatnich potomku */
+	public Node(Type type,Node parent,int deep){
 		this.parent = parent;
 		this.type = type;
+		this.deep = deep;
 	}
 	public boolean isTerminal(){
 		return size()==0;
+	}
+	public int getDeep(){
+		return deep;
 	}
 	public Type getType(){
 		return type;

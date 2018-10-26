@@ -32,14 +32,14 @@ nacteni_sektoru:
 	cli                       ; zakazani preruseni
 	push ds                   ; ulozeni realneho modu
 	lgdt [gdtinfo]            ; nacteni gdt regitru
-	mov eax, cr0             ; ulozeni registru cr0
+	mov eax, cr0              ; ulozeni registru cr0
 	or al,1                   ; zmena protected bitu
-	mov cr0, eax             ; nastaveni protected rezimu
+	mov cr0, eax              ; nastaveni protected rezimu
 	jmp $+2
-	mov bx, 0x08             ; vybrani dekriptoru 1
-	mov ds, bx               ; protoze (0x08 = 1000b)
+	mov bx, 0x08              ; vybrani dekriptoru 1
+	mov ds, bx                ; protoze (0x08 = 1000b)
 	and al,0xFE               ; a vynulovanim posledniho bitu
-	mov cr0, eax             ; honem zpet do realneho rezimu
+	mov cr0, eax              ; honem zpet do realneho rezimu
 	pop ds                    ; vraceni zpet ds segmentu
 	sti                       ; znovupovoleni preruseni
 	jmp skok_program          ; skok do nacteneho programu
