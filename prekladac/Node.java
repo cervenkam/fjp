@@ -27,15 +27,15 @@ public class Node extends ArrayList<Node>{
 		}
 	}
 	/* nadrazeny vyraz, null pokud se jedna o koren */
-	private final Node parent;
+	public final Node parent;
 	/* typ tohoto vyrazu */
-	private final Type type;
+	public final Type type;
 	/* neterminalni symbol pro identifikator nebo klicove slovo */
 	private String terminal_string = null;
 	/* neterminalni symbol pro cislo */
 	private Integer terminal_int = null;
 	/* deep zanoreni */
-	private final int deep;
+	public final int deep;
 	/* vytvoreni korenu */
 	public Node(){
 		this(Type.PROGRAM,null,0);
@@ -49,17 +49,13 @@ public class Node extends ArrayList<Node>{
 	public boolean isTerminal(){
 		return size()==0;
 	}
-	public int getDeep(){
-		return deep;
-	}
-	public Type getType(){
-		return type;
-	}
-	public void setTerminal(String terminal){
+	public Node setTerminal(String terminal){
 		this.terminal_string = terminal;
+		return this;
 	}
-	public void setTerminal(int terminal){
+	public Node setTerminal(int terminal){
 		this.terminal_int = terminal;
+		return this;
 	}
 	public int getTerminalInt(){
 		return terminal_int;

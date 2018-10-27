@@ -1,24 +1,25 @@
 package prekladac;
 import static prekladac.Node.Type.*;
-import java.util.function.BiConsumer;
 import java.util.List;
 import java.util.ArrayList;
 import java.util.Collections;
-interface Functor extends BiConsumer<Node,Integer>{};
+@FunctionalInterface
+interface Functor{
+	void apply(I386 i386,Node node,Integer integer);
+}
 class Symbol{
 	public final Node ident;
-	public final long SP;
-	public Symbol(Node ident,long SP){
+	public final int SP;
+	public Symbol(Node ident,int SP){
 		this.ident = ident;
 		this.SP = SP;
 	}
 }
 public class I386{
 	private final Node node;
-	private static final List<Byte> program = new ArrayList<>();
-	private static final List<Symbol> symbols = new ArrayList<>();
-	private static long SP = 0xffffff;
-	private static long BP = 0xffffff;
+	private final List<Byte> program = new ArrayList<>();
+	private final List<Symbol> symbols = new ArrayList<>();
+	private int SP = 0xffffff;
 	private final Functor[] functs = {
 		I386::program,
 		I386::declare,
@@ -35,84 +36,198 @@ public class I386{
 	public I386(Node node){
 		this.node = node;
 	}
+	public void add_program(int... values){
+		for(int val: values){
+			program.add((byte)val);
+		}
+	}
 	public void compile(){
 		program.clear();
 		symbols.clear();
 		compile(node);
 	}
 	private void compile(Node node){
-		Functor functor = functs[node.getType().ordinal()];
+		Functor functor = functs[node.type.ordinal()];
 		int a=0;
-		functor.accept(node,a);
+		functor.apply(this,node,a);
 		if(!node.isTerminal()){
 			for(Node subnode:node){
 				a++;
 				compile(subnode);
-				functor.accept(node,a);
+				functor.apply(this,node,a);
 			}
 		}
 	}
-	public static void allocate(byte elements){
-		//sub sp,elements
-		Collections.addAll(program,(byte)0x83,(byte)0xec,elements);
+	public void add_int(int value){
+		add_program(
+			(byte)(value&0xff),
+			(byte)((value>>>8)&0xff),
+			(byte)((value>>>16)&0xff),
+			(byte)((value>>>24)&0xff)
+		);
 	}
-	public static void deallocate(byte elements){
-		//add sp,elements
-		Collections.addAll(program,(byte)0x83,(byte)0xc4,elements);
+	public void add_word(int word){
+		add_program(
+			(byte)(word&0xff),
+			(byte)((word>>>8)&0xff)
+		);
 	}
-	public static void program(Node node,int element){}
-	public static void declare(Node node,int element){
-		byte declares = 0;
-		for(Node sub: node){
-			if(sub.getType()==IDENT){
-				symbols.add(new Symbol(sub,SP));
-				declares++;
-				SP--;
+	public void allocate(byte elements){
+		//sub eps,elements (byte)
+		add_program(0x66,0x83,0xec,elements);
+	}
+	public void allocate(int elements){
+		//sub esp,elements
+		add_program(0x66,0x81,0xec);
+		add_int(elements);
+	}
+	public void load(Symbol s){
+		//mov eax,[ss:address]
+		add_program(0x36,0x66,0xa1);
+		add_word(s.SP);
+		//push eax
+		add_program(0x66,0x50);
+	}
+	public void store(Symbol s){
+		//pop eax
+		add_program(0x66,0x58);
+		store_EAX(s);
+	}
+	public void store_EAX(Symbol s){
+		//mov eax,[ss:address]
+		add_program(0x36,0x66,0xa3);
+		add_word(s.SP);
+	}
+	//GRAMMAR
+	public void program(Node node,int element){}
+	public void statement(Node node,int element){}
+	public void condition(Node node,int element){}
+	public void factor(Node node,int element){}
+	public void declare(Node node,int element){
+		if(element==node.size()){
+			int declares = 0;
+			for(Node sub: node){
+				if(sub.type==IDENT){
+					symbols.add(new Symbol(sub,SP));
+					declares++;
+					SP--;
+				}
+			}
+			if(declares<0x80){
+				allocate((byte)declares);
+			}else{
+				allocate(declares);
 			}
 		}
-		allocate(declares);
 	}
-	public static void block(Node node,int element){
+	public void block(Node node,int element){
 		if(element==node.size()){
 			byte deallocation = 0;
 			for(int a=symbols.size()-1; a>=0; a--){
 				Symbol sym = symbols.get(a);
-				if(sym.ident.getDeep() > node.getDeep()){
+				if(sym.ident.deep > node.deep){
 					symbols.remove(a);
 					deallocation++;
 				} 
 			}
-			deallocate(deallocation);
+			if(deallocation<0x80){
+				allocate(-(byte)deallocation);
+			}else{
+				allocate(-deallocation);
+			}
 		}
 	}
-	public static void statement(Node node,int element){}
-	public static void condition(Node node,int element){}
-	public static void expression(Node node,int element){}
-	public static void term(Node node,int element){
+	public void term(Node node,int element){
 		if(element==node.size()){
 			//pop eax
-			Collections.addAll(program,(byte)0x66,(byte)0x58);
+			add_program(0x66,0x58);
 			for(int a=1; a<node.size(); a+=2){
 				//pop ebx
-				Collections.addAll(program,(byte)0x66,(byte)0x5b);
+				add_program(0x66,0x5b);
 				if(node.get(a).getTerminalString()=="*"){
 					//imul ebx
-					Collections.addAll(program,(byte)0x66,(byte)0xf7,(byte)0xeb);
+					add_program(0x66,0xf7,0xeb);
 				}else{
 					//idiv ebx
-					Collections.addAll(program,(byte)0x66,(byte)0xf7,(byte)0xfb);
+					add_program(0x66,0xf7,0xfb);
 				}
 			}
 			//push eax
-			Collections.addAll(program,(byte)0x66,(byte)0x50);
+			add_program(0x66,0x50);
 		}
 	}
-	public static void factor(Node node,int element){}
-	public static void ident(Node node,int element){
-		
+	public void expression(Node node,int element){
+		if(element==node.size()){
+			//pop eax
+			add_program(0x66,0x58);
+			int start = 1;
+			//Java >=7 required for following:
+			switch(node.parent.getTerminalString()){
+				case "-":
+					//neg eax
+					add_program(0x66,0xf7,0xd8);
+				case "+":
+					start++;
+			}
+			for(int a=start; a<node.size(); a+=2){
+				//pop ebx
+				add_program(0x66,0x5b);
+				if(node.get(a).getTerminalString()=="+"){
+					//add eax,ebx
+					add_program(0x66,0x01,0xd8);
+				}else{
+					//sub eax,ebx
+					add_program(0x66,0x29,0xfb);
+				}
+			}
+			//push eax
+			add_program(0x66,0x50);
+		}
 	}
-	public static void number(Node node,int element){
-	
+	public void ident(Node node,int element){
+		if(element==node.size()){
+			Symbol to_find = null;
+			for(int a=symbols.size()-1; a>=0; a--){
+				Symbol sym = symbols.get(a);
+				if(sym.ident.getTerminalString().equals(
+					node.getTerminalString())){
+					to_find = sym;
+					break;
+				}
+			}
+			if(node.parent.type==FACTOR){
+				load(sym);
+				return;
+			}
+			if(node.parent.get(0).getTerminalString()=="?"){
+				//call [0x0:0x7d00]
+				add_program(0x9a,0,0x7d,0,0);
+				store_EAX(sym);
+				return;
+			}
+			//TODO function
+			//TODO block
+		}
 	}
-	public static void keyword(Node node,int element){}
+	public void number(Node node,int element){
+		if(element==node.size()){
+			//mov eax,
+			add_program(0x66,0xb8);
+			//immediate
+			add_int(node.getTerminalInt());
+			//push eax
+			add_program(0x66,0x50);
+		}
+	}
+	public void keyword(Node node,int element){
+		if(element==node.size()){
+			switch(node.getTerminalStrin()){
+				case "true": number(
+					new Node(null,null,0).setTerminalInt(1)
+					,0); break;
+				case "false": number(
+					new Node(null,null,0).setTerminalInt(0)
+					,0); break;
+			}
+	}
 }
