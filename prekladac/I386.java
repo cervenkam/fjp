@@ -41,6 +41,11 @@ public class I386{
 			program.add((byte)val);
 		}
 	}
+	public void add_program(byte... values){
+		for(byte val: values){
+			program.add(val);
+		}
+	}
 	public void compile(){
 		program.clear();
 		symbols.clear();
@@ -99,7 +104,9 @@ public class I386{
 		add_word(s.SP);
 	}
 	//GRAMMAR
-	public void program(Node node,int element){}
+	public void program(Node node,int element){
+		add_program(Loader.loader);
+	}
 	public void statement(Node node,int element){}
 	public void condition(Node node,int element){}
 	public void factor(Node node,int element){}
@@ -196,13 +203,13 @@ public class I386{
 				}
 			}
 			if(node.parent.type==FACTOR){
-				load(sym);
+				load(to_find);
 				return;
 			}
 			if(node.parent.get(0).getTerminalString()=="?"){
 				//call [0x0:0x7d00]
 				add_program(0x9a,0,0x7d,0,0);
-				store_EAX(sym);
+				store_EAX(to_find);
 				return;
 			}
 			//TODO function
@@ -221,13 +228,14 @@ public class I386{
 	}
 	public void keyword(Node node,int element){
 		if(element==node.size()){
-			switch(node.getTerminalStrin()){
+			switch(node.getTerminalString()){
 				case "true": number(
-					new Node(null,null,0).setTerminalInt(1)
+					new Node(null,null,0).setTerminal(1)
 					,0); break;
 				case "false": number(
-					new Node(null,null,0).setTerminalInt(0)
+					new Node(null,null,0).setTerminal(0)
 					,0); break;
 			}
+		}
 	}
 }
