@@ -8,6 +8,8 @@ import java.util.ArrayList;
  *	instrukce.
  */
 public class Node extends ArrayList<Node>{
+	public static final String DEFAULT_STRING = "^Srrt4#$Tagbw";
+	public static final Integer DEFAULT_INT = new Integer(666);
 	/* Typ vyrazu, dle nasi gramatiky */
 	public enum Type{
 		/* mozne terminalni a neterminalni symboly */
@@ -31,23 +33,29 @@ public class Node extends ArrayList<Node>{
 	/* typ tohoto vyrazu */
 	public final Type type;
 	/* neterminalni symbol pro identifikator nebo klicove slovo */
-	private String terminal_string = null;
+	private String terminal_string = DEFAULT_STRING;
 	/* neterminalni symbol pro cislo */
-	private Integer terminal_int = null;
+	private Integer terminal_int = DEFAULT_INT;
 	/* deep zanoreni */
 	public final int deep;
 	/* vytvoreni korenu */
 	public Node(){
-		this(Type.PROGRAM,null,0);
+		this(Type.PROGRAM,null);
 	}
 	/* vytvoreni ostatnich potomku */
-	public Node(Type type,Node parent,int deep){
+	public Node(Type type,Node parent){
 		this.parent = parent;
 		this.type = type;
-		this.deep = deep;
+		if(parent==null){
+			this.deep = 0;
+		}else if(parent.type==Type.BLOCK){
+			this.deep = parent.deep+1;
+		}else{
+			this.deep = parent.deep;
+		}
 	}
 	public boolean isTerminal(){
-		return size()==0;
+		return type.isTerminal();
 	}
 	public Node setTerminal(String terminal){
 		this.terminal_string = terminal;
@@ -73,11 +81,11 @@ public class Node extends ArrayList<Node>{
 		for(int a=0; a<lvl; a++){
 			buff.append(" ");
 		}
-		buff.append(type);
-		if(terminal_string!=null){
+		buff.append(deep).append(" ").append(type);
+		if(terminal_string!=DEFAULT_STRING){
 			buff.append(" (\"").append(terminal_string).append("\")");
 		}
-		if(terminal_int!=null){
+		if(terminal_int!=DEFAULT_INT){
 			buff.append(" (").append(terminal_int).append(")");
 		}
 		buff.append("\n");

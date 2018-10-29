@@ -44,7 +44,7 @@ public class I386{
 		this.node = node;
 	}
 	public void hint(String hint){
-		System.out.println(hint); //TODO remove on release
+		//System.out.println(hint); //TODO remove on release
 	}
 	public void add_program(int... values){
 		for(int val: values){
@@ -64,11 +64,13 @@ public class I386{
 	private void compile(Node node){
 		Functor functor = functs[node.type.ordinal()];
 		int a=0;
+		hint("; compiling "+a+"/"+node.size()+" of "+node.type);
 		functor.apply(this,node,a);
 		if(!node.isTerminal()){
 			for(Node subnode:node){
 				a++;
 				compile(subnode);
+				hint("; compiling "+a+"/"+node.size()+" of "+node.type);
 				functor.apply(this,node,a);
 			}
 		}
@@ -153,6 +155,13 @@ public class I386{
 				case "if":
 					int pc = jump_requests.pop();
 					set_program(program.size(),pc);	
+			}
+			if(node.get(0).getTerminalString().equals("!")){
+				load(findSymbol(
+					node.parent.get(1).getTerminalString()
+				));
+				hint("call 0x0:0x7d80");
+				add_program(0x9a,0x80,0x7d,0,0);
 			}
 		}
 	}
@@ -280,23 +289,26 @@ public class I386{
 			add_program(0x66,0x50);
 		}
 	}
+	public Symbol findSymbol(String search){
+		Symbol to_find = null;
+		for(int a=symbols.size()-1; a>=0; a--){
+			Symbol sym = symbols.get(a);
+			if(sym.ident.getTerminalString().equals(search)){
+				to_find = sym;
+				break;
+			}
+		}
+		return to_find;
+	}
 	public void ident(Node node,int element){
 		if(element==node.size()){
-			Symbol to_find = null;
-			for(int a=symbols.size()-1; a>=0; a--){
-				Symbol sym = symbols.get(a);
-				if(sym.ident.getTerminalString().equals(
-					node.getTerminalString())){
-					to_find = sym;
-					break;
-				}
-			}
+			Symbol to_find = findSymbol(node.getTerminalString());
 			if(node.parent.type==FACTOR){
 				load(to_find);
 				return;
 			}
 			if(node.parent.get(0).getTerminalString()=="?"){
-				hint("call [0x0:0x7d00]");
+				hint("call 0x0:0x7d00");
 				add_program(0x9a,0,0x7d,0,0);
 				store_EAX(to_find);
 				return;
@@ -318,10 +330,10 @@ public class I386{
 		if(element==node.size()){
 			switch(node.getTerminalString()){
 				case "true": number(
-					new Node(null,null,0).setTerminal(1)
+					new Node(null,null).setTerminal(1)
 					,0); break;
 				case "false": number(
-					new Node(null,null,0).setTerminal(0)
+					new Node(null,null).setTerminal(0)
 					,0); break;
 			}
 		}
