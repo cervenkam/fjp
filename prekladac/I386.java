@@ -43,6 +43,9 @@ public class I386{
 	public I386(Node node){
 		this.node = node;
 	}
+	public void hint(String hint){
+		System.out.println(hint); //TODO remove on release
+	}
 	public void add_program(int... values){
 		for(int val: values){
 			program.add((byte)val);
@@ -91,34 +94,37 @@ public class I386{
 		);
 	}
 	public void allocate(byte elements){
-		//sub eps,elements (byte)
+		hint("sub esp,elements");
 		add_program(0x66,0x83,0xec,elements);
 	}
 	public void allocate(int elements){
-		//sub esp,elements
+		hint("sub esp,elements");
 		add_program(0x66,0x81,0xec);
 		add_int(elements);
 	}
 	public void load(Symbol s){
-		//mov eax,[ss:address]
+		hint("mov eax,[ss:address]");
 		add_program(0x36,0x66,0xa1);
 		add_word(s.SP);
-		//push eax
+		hint("push eax");
 		add_program(0x66,0x50);
 	}
 	public void store(Symbol s){
-		//pop eax
+		hint("pop eax");
 		add_program(0x66,0x58);
 		store_EAX(s);
 	}
 	public void store_EAX(Symbol s){
-		//mov eax,[ss:address]
+		hint("mov eax,[ss:address]");
 		add_program(0x36,0x66,0xa3);
 		add_word(s.SP);
 	}
 	//GRAMMAR
 	public void program(Node node,int element){
-		add_program(Loader.loader);
+		if(element==0){
+			hint("... <loader> ...");
+			add_program(Loader.loader);
+		}
 	}
 	public void statement(Node node,int element){
 		//TODO everything except while & if
@@ -135,7 +141,7 @@ public class I386{
 				case "while":
 				//case "for":
 					int pc = jump_backwards.pop();
-					//mov ecx,<adresa>
+					hint("mov ecx,<adresa>");
 					add_program(0x66,0xb9);
 					add_int(pc);
 					
@@ -152,44 +158,44 @@ public class I386{
 	}
 	public void condition(Node node,int element){
 		if(element==node.size()){
-			//mov ecx,<adresa>
+			hint("mov ecx,<adresa>");
 			jump_requests.addFirst(program.size()+2);
 			add_program(0x66,0xb9,0,0,0,0);
-			//pop eax
+			hint("pop eax");
 			add_program(0x66,0x58);
 			if(node.parent.get(0).getTerminalString().equals("odd")){
-				//test eax,eax
+				hint("test eax,eax");
 				add_program(0x66,0x85,0xc0);
-				//jnp $+5
+				hint("jnp $+5");
 				add_program(0x7b,3);
 			}else{
-				//pop ebx
+				hint("pop ebx");
 				add_program(0x66,0x5b);
 				String op = node.parent.get(1).getTerminalString();
 				if(op.contains(">") || op.contains("<")){
-						//cmp eax,ebx
+						hint("cmp eax,ebx");
 						add_program(0x66,0x39,0xd8);
 						switch(op){
 							case ">=":
-								//jge $+5
+								hint("jge $+5");
 								add_program(0x7d,3);
 								break;
 							case ">":
-								//jg $+5
+								hint("jg $+5");
 								add_program(0x7f,3);
 								break;
 							case "<=":
-								//jle $+5
+								hint("jle $+5");
 								add_program(0x7e,3);
 								break;
 							case "<":
-								//jl $+5
+								hint("jl $+5");
 								add_program(0x7c,3);
 								break;
 						}
 				}
 			}
-			//jmp ecx
+			hint("jmp ecx");
 			add_program(0x66,0xff,0xe1);
 		}
 	}
@@ -230,48 +236,47 @@ public class I386{
 	}
 	public void term(Node node,int element){
 		if(element==node.size()){
-			//pop eax
+			hint("pop eax");
 			add_program(0x66,0x58);
 			for(int a=1; a<node.size(); a+=2){
-				//pop ebx
+				hint("pop ebx");
 				add_program(0x66,0x5b);
 				if(node.get(a).getTerminalString()=="*"){
-					//imul ebx
+					hint("imul ebx");
 					add_program(0x66,0xf7,0xeb);
 				}else{
-					//idiv ebx
+					hint("idiv ebx");
 					add_program(0x66,0xf7,0xfb);
 				}
 			}
-			//push eax
+			hint("push eax");
 			add_program(0x66,0x50);
 		}
 	}
 	public void expression(Node node,int element){
 		if(element==node.size()){
-			//pop eax
+			hint("pop eax");
 			add_program(0x66,0x58);
 			int start = 1;
-			//Java >=7 required for following:
 			switch(node.parent.getTerminalString()){
 				case "-":
-					//neg eax
+					hint("neg eax");
 					add_program(0x66,0xf7,0xd8);
 				case "+":
 					start++;
 			}
 			for(int a=start; a<node.size(); a+=2){
-				//pop ebx
+				hint("pop ebx");
 				add_program(0x66,0x5b);
 				if(node.get(a).getTerminalString()=="+"){
-					//add eax,ebx
+					hint("add eax,ebx");
 					add_program(0x66,0x01,0xd8);
 				}else{
-					//sub eax,ebx
+					hint("sub eax,ebx");
 					add_program(0x66,0x29,0xfb);
 				}
 			}
-			//push eax
+			hint("push eax");
 			add_program(0x66,0x50);
 		}
 	}
@@ -291,7 +296,7 @@ public class I386{
 				return;
 			}
 			if(node.parent.get(0).getTerminalString()=="?"){
-				//call [0x0:0x7d00]
+				hint("call [0x0:0x7d00]");
 				add_program(0x9a,0,0x7d,0,0);
 				store_EAX(to_find);
 				return;
@@ -302,11 +307,10 @@ public class I386{
 	}
 	public void number(Node node,int element){
 		if(element==node.size()){
-			//mov eax,
+			hint("mov eax,imm/32");
 			add_program(0x66,0xb8);
-			//immediate
 			add_int(node.getTerminalInt());
-			//push eax
+			hint("push eax");
 			add_program(0x66,0x50);
 		}
 	}
@@ -333,7 +337,7 @@ public class I386{
 		try{
 			Files.write(new File(path).toPath(),getArray());
 		}catch(IOException e){
-			System.err.println("Program nelze ulozit!, detaily:");
+			System.err.println("Program cannot be saved!, details:");
 			e.printStackTrace();
 		}
 	}

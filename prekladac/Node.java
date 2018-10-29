@@ -63,4 +63,26 @@ public class Node extends ArrayList<Node>{
 	public String getTerminalString(){
 		return terminal_string;
 	}
+	@Override
+	public String toString(){
+		StringBuffer sb = new StringBuffer();
+		stringify(0,sb);
+		return sb.toString();
+	}
+	public void stringify(int lvl,StringBuffer buff){
+		for(int a=0; a<lvl; a++){
+			buff.append(" ");
+		}
+		buff.append(type);
+		if(terminal_string!=null){
+			buff.append(" (\"").append(terminal_string).append("\")");
+		}
+		if(terminal_int!=null){
+			buff.append(" (").append(terminal_int).append(")");
+		}
+		buff.append("\n");
+		for(int a=0; a<size(); a++){
+			get(a).stringify(lvl+1,buff);
+		}	
+	}
 }
