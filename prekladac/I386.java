@@ -1,7 +1,12 @@
 package prekladac;
 import static prekladac.Node.Type.*;
+import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
 import java.util.List;
 import java.util.ArrayList;
+import java.util.LinkedList;
+import java.util.Deque;
 import java.util.Collections;
 @FunctionalInterface
 interface Functor{
@@ -16,6 +21,8 @@ class Symbol{
 	}
 }
 public class I386{
+	private final Deque<Integer> jump_requests = new LinkedList<>();
+	private final Deque<Integer> jump_backwards = new LinkedList<>();
 	private final Node node;
 	private final List<Byte> program = new ArrayList<>();
 	private final List<Symbol> symbols = new ArrayList<>();
@@ -71,6 +78,12 @@ public class I386{
 			(byte)((value>>>24)&0xff)
 		);
 	}
+	public void set_program(int value,int pos){
+		program.set(pos  ,(byte)(value&0xff));
+		program.set(pos+1,(byte)((value>>>8)&0xff));
+		program.set(pos+2,(byte)((value>>>16)&0xff));
+		program.set(pos+3,(byte)((value>>>24)&0xff));
+	}
 	public void add_word(int word){
 		add_program(
 			(byte)(word&0xff),
@@ -107,8 +120,79 @@ public class I386{
 	public void program(Node node,int element){
 		add_program(Loader.loader);
 	}
-	public void statement(Node node,int element){}
-	public void condition(Node node,int element){}
+	public void statement(Node node,int element){
+		//TODO everything except while & if
+		String keyword = node.parent.get(0).getTerminalString();
+		if(element==0){
+			switch(keyword){
+				case "while":
+				//case "for":
+					jump_backwards.addFirst(program.size());
+			}
+		}else if(element==node.size()){
+			//jumps back (loops only)
+			switch(keyword){
+				case "while":
+				//case "for":
+					int pc = jump_backwards.pop();
+					//mov ecx,<adresa>
+					add_program(0x66,0xb9);
+					add_int(pc);
+					
+			}
+			//jump out if condition is not met
+			switch(keyword){
+				case "while":
+				//case "for":
+				case "if":
+					int pc = jump_requests.pop();
+					set_program(program.size(),pc);	
+			}
+		}
+	}
+	public void condition(Node node,int element){
+		if(element==node.size()){
+			//mov ecx,<adresa>
+			jump_requests.addFirst(program.size()+2);
+			add_program(0x66,0xb9,0,0,0,0);
+			//pop eax
+			add_program(0x66,0x58);
+			if(node.parent.get(0).getTerminalString().equals("odd")){
+				//test eax,eax
+				add_program(0x66,0x85,0xc0);
+				//jnp $+5
+				add_program(0x7b,3);
+			}else{
+				//pop ebx
+				add_program(0x66,0x5b);
+				String op = node.parent.get(1).getTerminalString();
+				if(op.contains(">") || op.contains("<")){
+						//cmp eax,ebx
+						add_program(0x66,0x39,0xd8);
+						switch(op){
+							case ">=":
+								//jge $+5
+								add_program(0x7d,3);
+								break;
+							case ">":
+								//jg $+5
+								add_program(0x7f,3);
+								break;
+							case "<=":
+								//jle $+5
+								add_program(0x7e,3);
+								break;
+							case "<":
+								//jl $+5
+								add_program(0x7c,3);
+								break;
+						}
+				}
+			}
+			//jmp ecx
+			add_program(0x66,0xff,0xe1);
+		}
+	}
 	public void factor(Node node,int element){}
 	public void declare(Node node,int element){
 		if(element==node.size()){
@@ -236,6 +320,21 @@ public class I386{
 					new Node(null,null,0).setTerminal(0)
 					,0); break;
 			}
+		}
+	}
+	public byte[] getArray(){
+		byte[] arr = new byte[program.size()];
+		for(int a=0; a<arr.length; a++){
+			arr[a] = program.get(a);
+		}
+		return arr;
+	}
+	public void print(String path){
+		try{
+			Files.write(new File(path).toPath(),getArray());
+		}catch(IOException e){
+			System.err.println("Program nelze ulozit!, detaily:");
+			e.printStackTrace();
 		}
 	}
 }
