@@ -16,3 +16,4 @@ cp -r ../prekladac .
 find . -name "*.java" -print | xargs javac -Xlint:deprecation -cp antlr/*.jar 
 java -cp antlr/antlr-4.7.1-complete.jar:. prekladac.I386 ../$1 ../$2
 objdump -D -b binary --start-address=0x200 -mi386 -Maddr32 -Mdata32 ../$2
+qemu-system-x86_64 -drive file=../$2,format=raw
