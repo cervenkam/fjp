@@ -1,13 +1,18 @@
 #!/bin/bash
-mkdir build
-cd build
-
-#priprava ANTLR
-curl -O https://raw.githubusercontent.com/antlr/grammars-v4/master/pl0/pl0.g4
-curl -O https://www.antlr.org/download/antlr-4.7.1-complete.jar
-java -cp *.jar org.antlr.v4.Tool pl0.g4
-
+if [ ! -d build ]; then
+	mkdir build
+	cd build
+	#priprava ANTLR
+	mkdir antlr && cd antlr
+	curl -O https://www.antlr.org/download/antlr-4.7.1-complete.jar
+	curl -O https://raw.githubusercontent.com/antlr/grammars-v4/master/pl0/pl0.g4
+	java -cp *.jar org.antlr.v4.Tool -package antlr pl0.g4
+	cd ..
+else
+	cd build
+fi
 #sestavneni projektu
-cd ..
-find prekladac -name "*.java" -print | xargs javac -cp build/*.jar -d build/
-find . -name "*.java" -print | xargs javac -cp build/*.jar -d build/
+cp -r ../prekladac .
+find . -name "*.java" -print | xargs javac -Xlint:deprecation -cp antlr/*.jar 
+java -cp antlr/antlr-4.7.1-complete.jar:. prekladac.I386 ../$1 ../$2
+objdump -D -b binary --start-address=0x200 -mi386 -Maddr32 -Mdata32 ../$2
