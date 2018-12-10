@@ -229,12 +229,6 @@ public class I386 extends pl0BaseListener{
 		hint("jmp [cs:eax]");
 		add_program(0x2e,0xff,0x20);	
 	}
-	@Override public void exitTerm(pl0Parser.TermContext ctx){
-		//TODO
-		//pop_EAX();
-		//pop_EBX();
-		//push_EAX();
-	}
 	@Override public void exitAssignstmt(pl0Parser.AssignstmtContext ctx){
 		pop_EAX();
 		pop_EBX();
@@ -265,5 +259,58 @@ public class I386 extends pl0BaseListener{
 				allocate(-4*allocated);
 			}
 		}
+	}
+	public void switchText(String text){
+		switch(text){
+			case "+":
+				hint("add eax,ebx");
+				add_program(0x01,0xd8);
+				break;
+			case "-":
+				hint("sub eax,ebx");
+				add_program(0x29,0xf3);
+				break;
+			case "*":
+				hint("mul ebx");
+				add_program(0xf7,0xe3);
+				break;
+			case "/":
+				hint("div ebx");
+				add_program(0xf7,0xf3);
+				break;
+		}
+	}
+	@Override public void exitExpression(pl0Parser.ExpressionContext ctx){
+		int children = ctx.getChildCount();
+		hint("xor eax,eax");
+		add_program(0x31,0xc0);
+		for(int a=children-1; a>=0; a--){
+			ParseTree t = ctx.getChild(a);
+			if(t instanceof TerminalNode){
+				switchText(((TerminalNode)t).getSymbol().getText());
+			}else{
+				pop_EBX();
+			}
+		}
+		ParseTree first = ctx.getChild(0);
+		if(!(first instanceof TerminalNode)){
+			switchText("+");
+		}
+		push_EAX();
+	}
+	@Override public void exitTerm(pl0Parser.TermContext ctx){
+		int children = ctx.getChildCount();
+		hint("mov eax,1");
+		add_program(0xb8,0x01,0x00,0x00,0x00);
+		for(int a=children-1; a>=0; a--){
+			ParseTree t = ctx.getChild(a);
+			if(t instanceof TerminalNode){
+				switchText(((TerminalNode)t).getSymbol().getText());
+			}else{
+				pop_EBX();
+			}
+		}
+		switchText("*");
+		push_EAX();
 	}
 }

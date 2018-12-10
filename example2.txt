@@ -1,5 +1,5 @@
 VAR x;
 BEGIN
-	x := 53;
+	x := 53*3;
 	WRITE x;
 END.
