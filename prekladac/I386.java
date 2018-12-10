@@ -13,9 +13,11 @@ import java.util.Collections;
 class Symbol{
 	public final Token ident;
 	public final int SP;
-	public Symbol(Token ident,int SP){
+	public final int deep;
+	public Symbol(Token ident,int SP,int deep){
 		this.ident = ident;
 		this.SP = SP;
+		this.deep = deep;
 	}
 }
 public class I386 extends pl0BaseListener{
@@ -26,6 +28,7 @@ public class I386 extends pl0BaseListener{
 	private final ILoader loader = new KernelLoader();
 	private final String path;
 	private int SP = 0xffffff;
+	private int deep = 0;
 	public static void main(String[] args) throws IOException{
 		pl0Lexer lexer = new pl0Lexer(CharStreams.fromFileName(args[0]));
 		CommonTokenStream tokens = new CommonTokenStream(lexer);
@@ -88,25 +91,23 @@ public class I386 extends pl0BaseListener{
 		);
 	}
 	public void allocate(byte elements){
-		hint("sub esp,elements");
+		hint("sub esp, (byte)"+elements);
 		add_program(0x83,0xec,elements);
 		SP-=elements;
 	}
 	public void allocate(int elements){
-		hint("sub esp,elements");
+		hint("sub esp,"+elements);
 		add_program(0x81,0xec);
 		add_int(elements);
 		SP-=elements;
 	}
 	public void allocateSymbol(Symbol s){
 		symbols.add(s);
-		allocate((byte)4);
 	}
 	public void load(Symbol s){
-		hint("mov eax,imm/32");
-		add_program(0xb8);
+		hint("push imm/32");
+		add_program(0x68);
 		add_int(s.SP);
-		push_EAX();
 	}
 	public void store(Symbol s){
 		pop_EAX();
@@ -144,6 +145,10 @@ public class I386 extends pl0BaseListener{
 		add_program(loader.loader());
 	}
 	@Override public void exitProgram(pl0Parser.ProgramContext ctx){
+		clearStack();
+		deep--;
+		hint("jmp $");
+		add_program(0xeb,0xfe);
 		print(path);
 	}
 	@Override public void enterWhilestmt(pl0Parser.WhilestmtContext ctx){
@@ -160,7 +165,8 @@ public class I386 extends pl0BaseListener{
 	public void write(){
 		pop_EBX();
 		hint("mov eax,[ss:ebx]");
-		add_program(0x36,0x67,0x8b,0x03);
+		add_program(0x36,0x8b,0x03);
+		hint("call write");
 		add_program(loader.write());
 	}
 	@Override public void exitBangstmt(pl0Parser.BangstmtContext ctx){
@@ -172,6 +178,7 @@ public class I386 extends pl0BaseListener{
 	@Override public void exitQstmt(pl0Parser.QstmtContext ctx){
 		//TODO
 		pop_EAX();
+		hint("call read");
 		add_program(loader.read());
 		push_EAX();
 	}
@@ -190,29 +197,37 @@ public class I386 extends pl0BaseListener{
 		String name = ctx.STRING().getSymbol().getText();
 		Symbol s = findSymbol(name);
 		if(s!=null){
-			load(s);
+			if(!(ctx.getParent() instanceof pl0Parser.VarsContext)){
+				load(s);
+			}
 		}else{
 			error("Symbol "+name+" does not exists");
 		}
 	}
 	@Override public void exitNumber(pl0Parser.NumberContext ctx){
-		hint("mov eax,imm/32");
-		add_program(0xb8);
-		add_int(Integer.valueOf(ctx.NUMBER().getSymbol().getText()));
-		push_EAX();
+		int number = Integer.valueOf(ctx.NUMBER().getSymbol().getText());
+		if((byte)number==number){
+			hint("push byte "+number);
+			add_program(0x6a,(byte)number);
+		}else{
+			hint("push "+number);
+			add_program(0x68);
+			add_int(number);
+		}
 	}
 	@Override public void enterVars(pl0Parser.VarsContext ctx){
 		for(pl0Parser.IdentContext ident: ctx.ident()){
-			allocateSymbol(new Symbol(ident.STRING().getSymbol(),SP));
+			allocateSymbol(new Symbol(ident.STRING().getSymbol(),SP,deep));
 		}
+		allocate(4*ctx.ident().size());
 	}
 	@Override public void enterProcedure(pl0Parser.ProcedureContext ctx){
-		allocateSymbol(new Symbol(ctx.ident().STRING().getSymbol(),SP));
+		allocateSymbol(new Symbol(ctx.ident().STRING().getSymbol(),SP,deep));
 	}
 	@Override public void exitCallstmt(pl0Parser.CallstmtContext ctx){
 		pop_EAX();
 		hint("jmp [cs:eax]");
-		add_program(0x2e,0x67,0xff,0x20);	
+		add_program(0x2e,0xff,0x20);	
 	}
 	@Override public void exitTerm(pl0Parser.TermContext ctx){
 		//TODO
@@ -224,6 +239,31 @@ public class I386 extends pl0BaseListener{
 		pop_EAX();
 		pop_EBX();
 		hint("mov [ss:ebx],eax");
-		add_program(0x36,0x67,0x89,0x03);
+		add_program(0x36,0x89,0x03);
+	}
+	@Override public void enterBlock(pl0Parser.BlockContext ctx){
+		deep++;
+	}
+	@Override public void exitBlock(pl0Parser.BlockContext ctx){
+		clearStack();
+	}
+	public void clearStack(){
+		int allocated = 0;
+		for(int a=0; a<symbols.size(); a++){
+			Symbol s = symbols.get(a);
+			if(s.deep >= deep){
+				symbols.remove(a);
+				hint("Removing symbol");
+				allocated++;
+				a--;
+			}
+		}
+		if(allocated>0){
+			if(allocated<0x80){
+				allocate((byte)(-4*allocated));
+			}else{
+				allocate(-4*allocated);
+			}
+		}
 	}
 }

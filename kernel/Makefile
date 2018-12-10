@@ -15,13 +15,13 @@ compiled/main.bin: compiled/loader.bin compiled/program.bin
 	echo '\t@Override public final byte[] read(){' >> $$file; \
 	echo '\t\treturn new byte[]{' >> $$file; \
 	echo -n '\t\t\t(byte)0x9a,(byte)0x00,(byte)0x7d,' >> $$file; \
-	echo '(byte)0x00,(byte)0x00' >> $$file; \
+	echo '(byte)0x00,(byte)0x00,(byte)0x00,(byte)0x00' >> $$file; \
 	echo '\t\t};' >> $$file; \
 	echo '\t}' >> $$file; \
 	echo '\t@Override public final byte[] write(){' >> $$file; \
 	echo '\t\treturn new byte[]{' >> $$file; \
 	echo -n '\t\t\t(byte)0x9a,(byte)0x80,(byte)0x7d,' >> $$file; \
-	echo '(byte)0x00,(byte)0x00' >> $$file; \
+	echo '(byte)0x00,(byte)0x00,(byte)0x00,(byte)0x00' >> $$file; \
 	echo '\t\t};' >> $$file; \
 	echo '\t}' >> $$file; \
 	echo '}' >> $$file;

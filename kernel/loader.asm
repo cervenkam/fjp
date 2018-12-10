@@ -6,12 +6,13 @@ jmp 0x07c0:start
 %define start_program 2
 %define program start_program*256+velikost_program
 start:
+	xor ax, ax                ; vynulovani AX registru
+	mov es, ax                ; vynulovani extra segmentu
 	in al, 0x92
 	or al, 2
 	out 0x92, al              ; aktivace A20 line
 	mov ax, cs                ; zkopirovani kodoveho segmentu ...
 	mov ds, ax                ; do datoveho segmentu ...
-	mov es, ax                ; a i do extra segmentu
 	mov bp, 0x9000            ; nastaveni bazove adresy zasobniku
 	mov sp, bp                ; a ukazatele na aktualni prvek zasobniku (stack pointeru)
 	mov si, 0x03              ; tri pokusy pro nacteni sektoru
