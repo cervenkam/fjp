@@ -5,8 +5,7 @@ if [ ! -d build ]; then
 	#priprava ANTLR
 	mkdir antlr && cd antlr
 	curl -O https://www.antlr.org/download/antlr-4.7.1-complete.jar
-	curl -O https://raw.githubusercontent.com/antlr/grammars-v4/master/pl0/pl0.g4
-	java -cp *.jar org.antlr.v4.Tool -package antlr pl0.g4
+	java -cp *.jar org.antlr.v4.Tool -package prekladac ../../prekladac/pl0.g4
 	cd ..
 else
 	cd build

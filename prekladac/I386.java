@@ -1,7 +1,6 @@
 package prekladac;
 import org.antlr.v4.runtime.*;
 import org.antlr.v4.runtime.tree.*;
-import antlr.*;
 import java.io.File;
 import java.nio.file.Files;
 import java.io.IOException;
@@ -93,20 +92,20 @@ public class I386 extends pl0BaseListener{
 	public void allocate(byte elements){
 		hint("sub esp, (byte)"+elements);
 		add_program(0x83,0xec,elements);
-		SP-=elements;
 	}
 	public void allocate(int elements){
 		hint("sub esp,"+elements);
 		add_program(0x81,0xec);
 		add_int(elements);
-		SP-=elements;
 	}
 	public void allocateSymbol(Symbol s){
 		symbols.add(s);
+		SP-=4;
 	}
 	public void load(Symbol s){
 		hint("push imm/32");
 		add_program(0x68);
+		hint("s.SP = "+s.SP);
 		add_int(s.SP);
 	}
 	public void store(Symbol s){
@@ -162,10 +161,13 @@ public class I386 extends pl0BaseListener{
 		add_program(0xb9);
 		add_int(pc);
 	}
-	public void write(){
+	public void dereferenceStack_EAX(){
 		pop_EBX();
 		hint("mov eax,[ss:ebx]");
 		add_program(0x36,0x8b,0x03);
+	}
+	public void write(){
+		dereferenceStack_EAX();
 		hint("call write");
 		add_program(loader.write());
 	}
@@ -259,6 +261,7 @@ public class I386 extends pl0BaseListener{
 				allocate(-4*allocated);
 			}
 		}
+		SP-=allocated;
 	}
 	public void switchText(String text){
 		switch(text){
@@ -268,7 +271,7 @@ public class I386 extends pl0BaseListener{
 				break;
 			case "-":
 				hint("sub eax,ebx");
-				add_program(0x29,0xf3);
+				add_program(0x29,0xd8);
 				break;
 			case "*":
 				hint("mul ebx");
@@ -282,35 +285,33 @@ public class I386 extends pl0BaseListener{
 	}
 	@Override public void exitExpression(pl0Parser.ExpressionContext ctx){
 		int children = ctx.getChildCount();
-		hint("xor eax,eax");
-		add_program(0x31,0xc0);
-		for(int a=children-1; a>=0; a--){
-			ParseTree t = ctx.getChild(a);
-			if(t instanceof TerminalNode){
-				switchText(((TerminalNode)t).getSymbol().getText());
-			}else{
-				pop_EBX();
+		if(children==3){
+			pop_EBX();
+			pop_EAX();
+			switchText(((TerminalNode)ctx.getChild(1)).getSymbol().getText());
+			push_EAX();
+		}else if(children==2){
+			if(((TerminalNode)ctx.getChild(0)).getSymbol().getText().equals("-")){
+				pop_EAX();
+				hint("neg eax");
+				add_program(0x7f,0xd8);
+				push_EAX();
 			}
 		}
-		ParseTree first = ctx.getChild(0);
-		if(!(first instanceof TerminalNode)){
-			switchText("+");
-		}
-		push_EAX();
 	}
 	@Override public void exitTerm(pl0Parser.TermContext ctx){
 		int children = ctx.getChildCount();
-		hint("mov eax,1");
-		add_program(0xb8,0x01,0x00,0x00,0x00);
-		for(int a=children-1; a>=0; a--){
-			ParseTree t = ctx.getChild(a);
-			if(t instanceof TerminalNode){
-				switchText(((TerminalNode)t).getSymbol().getText());
-			}else{
-				pop_EBX();
-			}
+		if(children==3){
+			pop_EAX();
+			pop_EBX();
+			switchText(((TerminalNode)ctx.getChild(1)).getSymbol().getText());
+			push_EAX();
 		}
-		switchText("*");
-		push_EAX();
+	}
+	@Override public void exitFactor(pl0Parser.FactorContext ctx){
+		if(ctx.getChild(0) instanceof pl0Parser.IdentContext){
+			dereferenceStack_EAX();	
+			push_EAX();
+		}
 	}
 }
