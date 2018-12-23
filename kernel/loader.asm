@@ -100,7 +100,10 @@ pis32:
 	popa
 	retf
 skok_program:
-	xor ax,ax
+	mov eax,0xffffff
+	mov ebp,eax
+	mov esp,eax
+	xor eax,eax
 	mov ds,ax
 	jmp segment_program:0x0000         ; skok do programu
 gdtinfo:

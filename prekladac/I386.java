@@ -12,8 +12,8 @@ import java.util.Collections;
 class Symbol{
 	public final Token ident;
 	public final int SP;
-	public final int deep;
-	public Symbol(Token ident,int SP,int deep){
+	public final byte deep;
+	public Symbol(Token ident,int SP,byte deep){
 		this.ident = ident;
 		this.SP = SP;
 		this.deep = deep;
@@ -26,8 +26,7 @@ public class I386 extends pl0BaseListener{
 	private final List<Symbol> symbols = new ArrayList<>();
 	private final ILoader loader = new KernelLoader();
 	private final String path;
-	private int SP = 0xffffff;
-	private int deep = 0;
+	private byte deep = -1;
 	public static void main(String[] args) throws IOException{
 		pl0Lexer lexer = new pl0Lexer(CharStreams.fromFileName(args[0]));
 		CommonTokenStream tokens = new CommonTokenStream(lexer);
@@ -52,17 +51,14 @@ public class I386 extends pl0BaseListener{
 	public void push_EAX(){
 		hint("push eax");
 		add_program(0x50);
-		SP-=4;
 	}
 	public void pop_EBX(){
 		hint("pop ebx");
 		add_program(0x5b);
-		SP+=4;
 	}
 	public void pop_EAX(){
 		hint("pop eax");
 		add_program(0x58);
-		SP+=4;
 	}
 	public void add_program(byte... values){
 		for(byte val: values){
@@ -89,7 +85,7 @@ public class I386 extends pl0BaseListener{
 			(byte)((word>>>8)&0xff)
 		);
 	}
-	public void allocate(byte elements){
+	/*public void allocate(byte elements){
 		hint("sub esp, (byte)"+elements);
 		add_program(0x83,0xec,elements);
 	}
@@ -97,16 +93,23 @@ public class I386 extends pl0BaseListener{
 		hint("sub esp,"+elements);
 		add_program(0x81,0xec);
 		add_int(elements);
-	}
+	}*/
 	public void allocateSymbol(Symbol s){
 		symbols.add(s);
-		SP-=4;
 	}
 	public void load(Symbol s){
-		hint("push imm/32");
-		add_program(0x68);
-		hint("s.SP = "+s.SP);
-		add_int(s.SP);
+		if(s.deep == deep){
+			hint("mov eax,ebp");
+			add_program(0x89,0xe8);
+		}else{
+			hint("mov eax,[ss:ebp-"+(4*(s.deep+1))+"]");
+			add_program(0x36,0x8b,0x85);
+			add_int(4*(-s.deep-1));
+		}
+		hint("sub eax,"+(4*(s.deep+s.SP+1)));
+		add_program(0x2d);
+		add_int(4*(s.SP+s.deep+1));
+		push_EAX();
 	}
 	public void store(Symbol s){
 		pop_EAX();
@@ -144,8 +147,6 @@ public class I386 extends pl0BaseListener{
 		add_program(loader.loader());
 	}
 	@Override public void exitProgram(pl0Parser.ProgramContext ctx){
-		clearStack();
-		deep--;
 		hint("jmp $");
 		add_program(0xeb,0xfe);
 		print(path);
@@ -171,9 +172,6 @@ public class I386 extends pl0BaseListener{
 		hint("call write");
 		add_program(loader.write());
 	}
-	@Override public void exitBangstmt(pl0Parser.BangstmtContext ctx){
-		write();
-	}
 	@Override public void exitWritestmt(pl0Parser.WritestmtContext ctx){
 		write();
 	}
@@ -183,6 +181,26 @@ public class I386 extends pl0BaseListener{
 		hint("call read");
 		add_program(loader.read());
 		push_EAX();
+	}
+	private byte hex2byte(char c){
+		if(c<='9' && c>='0'){
+			return (byte)(c-'0');
+		}else if(c<='F' && c>='A'){
+			return (byte)(c-'A'+10);
+		}else if(c<='f' && c>='a'){
+			return (byte)(c-'a'+10);
+		}else{
+			return (byte)0;
+		}
+	}
+	@Override public void exitExecstmt(pl0Parser.ExecstmtContext ctx){
+		String text = ctx.HEXSTRING().getSymbol().getText();
+		for(int a=2; a<text.length(); a+=2){
+			add_program(
+				(hex2byte(text.charAt(a))<<4)+
+				hex2byte(text.charAt(a+1))
+			);
+		}
 	}
 	public Symbol findSymbol(String search){
 		Symbol to_find = null;
@@ -199,7 +217,8 @@ public class I386 extends pl0BaseListener{
 		String name = ctx.STRING().getSymbol().getText();
 		Symbol s = findSymbol(name);
 		if(s!=null){
-			if(!(ctx.getParent() instanceof pl0Parser.VarsContext)){
+			if(!(ctx.getParent() instanceof pl0Parser.VarsContext) &&
+			   !(ctx.getParent() instanceof pl0Parser.ProcedureContext)){
 				load(s);
 			}
 		}else{
@@ -217,19 +236,52 @@ public class I386 extends pl0BaseListener{
 			add_int(number);
 		}
 	}
-	@Override public void enterVars(pl0Parser.VarsContext ctx){
-		for(pl0Parser.IdentContext ident: ctx.ident()){
-			allocateSymbol(new Symbol(ident.STRING().getSymbol(),SP,deep));
+	@Override public void enterBlock(pl0Parser.BlockContext ctx){
+		deep++;
+		List<pl0Parser.IdentContext> idc;
+		if(ctx.vars()==null){
+			idc = new ArrayList<pl0Parser.IdentContext>();
+		}else{
+			idc = ctx.vars().ident();
 		}
-		allocate(4*ctx.ident().size());
+		for(int a=0; a<idc.size(); a++){
+			allocateSymbol(new Symbol(idc.get(a).STRING()
+				.getSymbol(),a,deep));
+		}
+		int size = 4*idc.size();
+		hint("enter "+size+","+deep);
+		add_program(0xc8,(byte)(size&0xff),(byte)((size>>8)&0xff),deep);
+		if(ctx.getParent() instanceof pl0Parser.ProgramContext){
+			hint("jmp near <block>");
+			add_program(0xe9);
+			jump_requests.addFirst(program.size());
+			add_int(0);
+		}
 	}
 	@Override public void enterProcedure(pl0Parser.ProcedureContext ctx){
-		allocateSymbol(new Symbol(ctx.ident().STRING().getSymbol(),SP,deep));
+		allocateSymbol(new Symbol(ctx.ident().STRING().getSymbol(),
+			program.size(),deep));
+	}
+	@Override public void exitBlock(pl0Parser.BlockContext ctx){
+		hint("leave");
+		add_program(0xc9);
+	}
+	@Override public void exitProcedure(pl0Parser.ProcedureContext ctx){
+		hint("ret");	
+		add_program(0xc3);
+		clearVariables();
+		deep--;
 	}
 	@Override public void exitCallstmt(pl0Parser.CallstmtContext ctx){
-		pop_EAX();
-		hint("jmp [cs:eax]");
-		add_program(0x2e,0xff,0x20);	
+		String name = ctx.ident().STRING().getSymbol().getText();
+		Symbol s = findSymbol(name);
+		if(s!=null){
+			hint("call [cs:"+s.SP+"]");
+			add_program(0x2e,0xff,0x15);	
+			add_int(s.SP);
+		}else{
+			System.err.println("Procedure "+ctx.ident()+" not found");
+		}
 	}
 	@Override public void exitAssignstmt(pl0Parser.AssignstmtContext ctx){
 		pop_EAX();
@@ -237,31 +289,15 @@ public class I386 extends pl0BaseListener{
 		hint("mov [ss:ebx],eax");
 		add_program(0x36,0x89,0x03);
 	}
-	@Override public void enterBlock(pl0Parser.BlockContext ctx){
-		deep++;
-	}
-	@Override public void exitBlock(pl0Parser.BlockContext ctx){
-		clearStack();
-	}
-	public void clearStack(){
-		int allocated = 0;
+	public void clearVariables(){
 		for(int a=0; a<symbols.size(); a++){
 			Symbol s = symbols.get(a);
 			if(s.deep >= deep){
 				symbols.remove(a);
 				hint("Removing symbol");
-				allocated++;
 				a--;
 			}
 		}
-		if(allocated>0){
-			if(allocated<0x80){
-				allocate((byte)(-4*allocated));
-			}else{
-				allocate(-4*allocated);
-			}
-		}
-		SP-=allocated;
 	}
 	public void switchText(String text){
 		switch(text){
@@ -312,6 +348,13 @@ public class I386 extends pl0BaseListener{
 		if(ctx.getChild(0) instanceof pl0Parser.IdentContext){
 			dereferenceStack_EAX();	
 			push_EAX();
+		}
+	}
+	@Override public void enterStatement(pl0Parser.StatementContext ctx){
+		if(ctx.getParent().getParent() instanceof pl0Parser.ProgramContext){	
+			int pc = jump_requests.pop();
+			hint("set start address to "+program.size());
+			set_program(program.size()-pc-4,pc);
 		}
 	}
 }
