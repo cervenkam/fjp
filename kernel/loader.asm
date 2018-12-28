@@ -1,5 +1,5 @@
-org 0
-bits 16
+[org 0]
+[bits 16]
 jmp 0x07c0:start
 %define segment_program 0x07e0
 %define velikost_program 1
@@ -55,7 +55,7 @@ nacti_segmenty:
 	xor bx,bx    ; a offset bude nula
 	int 0x13     ; provede se cteni z disku
 	ret          ; a ukonci se podprogram
-times 0x100-($-$$) db 0   ; takto zajistim pevnou pozici volani cteni
+times 0x100-($-$$) db 0x90   ; takto zajistim pevnou pozici volani cteni
 cti32:
 	push cx
 	push ebx
@@ -78,7 +78,7 @@ cti32:
 	pop ebx
 	pop cx
 	retf
-times 0x180-($-$$) db 0    ; takto zajistim pevnou pozici volani vypisu
+times 0x180-($-$$) db 0x90    ; takto zajistim pevnou pozici volani vypisu
 pis32:
 	pusha
 	mov ebx,eax
@@ -112,5 +112,5 @@ gdtinfo:
 gdt         dd 0,0        ; prvni segmen je vzdy nulovy
 flatdesc    db 0xff, 0xff, 0, 0, 0, 10010010b, 11001111b, 0
 gdt_end:
-times 510-($-$$) db 0             ; doplneni pameti do 510ti bajtu
+times 510-($-$$) db 0x90          ; doplneni pameti do 510ti bajtu
 dw 0xaa55                         ; vlozeni bajtu 0xAA a 0x55 -> jedna se o bootovatelny sektor

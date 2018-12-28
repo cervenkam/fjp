@@ -1,8 +1,7 @@
 VAR x;
-PROCEDURE square;
 BEGIN
-END;
-BEGIN
-	EXECUTE 0x90;
-	WRITE x
+	x := 3;
+	WRITE x;
+	x := 7;
+	WRITE x;
 END.
