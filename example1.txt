@@ -1,7 +1,4 @@
-VAR x;
-BEGIN
-	x := 3;
-	WRITE x;
-	x := 7;
-	WRITE x;
-END.
+var x;
+begin
+	write x;
+end.

@@ -2,9 +2,6 @@
 [bits 16]
 jmp 0x07c0:start
 %define segment_program 0x07e0
-%define velikost_program 1
-%define start_program 2
-%define program start_program*256+velikost_program
 start:
 	xor ax, ax                ; vynulovani AX registru
 	mov es, ax                ; vynulovani extra segmentu
@@ -25,7 +22,7 @@ nacteni_sektoru:
 	int 0x13                  ; volani sluzeb BIOSu
 	mov ah,0x02               ; vyber sluzby cteni z disku (0x02)
 	mov ch,0x00               ; cylindr 0
-	mov ax,program            ; informace o sektorech programu
+	mov ax,0                  ; informace o sektorech programu
 	mov bx,segment_program    ; informace o segmentu programu
 	call nacti_segmenty       ; nacteni sektoru do pameti
 	jc restart                ; a pokud se to nezdari, restartuj system

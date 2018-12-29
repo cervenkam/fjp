@@ -27,6 +27,7 @@ public class I386 extends pl0BaseListener{
 	private final ILoader loader = new KernelLoader();
 	private final String path;
 	private byte deep = -1;
+	private int push_pop_ratio = 0;
 	public static void main(String[] args) throws IOException{
 		pl0Lexer lexer = new pl0Lexer(CharStreams.fromFileName(args[0]));
 		CommonTokenStream tokens = new CommonTokenStream(lexer);
@@ -53,14 +54,17 @@ public class I386 extends pl0BaseListener{
 	public void push_EAX(){
 		hint("push eax");
 		add_program(0x66,0x50);
+		push_pop_ratio+=4;
 	}
 	public void pop_EBX(){
 		hint("pop ebx");
 		add_program(0x66,0x5b);
+		push_pop_ratio-=4;
 	}
 	public void pop_EAX(){
 		hint("pop eax");
 		add_program(0x66,0x58);
+		push_pop_ratio-=4;
 	}
 	public void add_program(byte... values){
 		for(byte val: values){
@@ -75,6 +79,10 @@ public class I386 extends pl0BaseListener{
 			(byte)((value>>>24)&0xff)
 		);
 	}
+	public void set_program_word(int value,int pos){
+		program.set(pos  ,(byte)(value&0xff));
+		program.set(pos+1,(byte)((value>>>8)&0xff));
+	}
 	public void set_program(int value,int pos){
 		program.set(pos  ,(byte)(value&0xff));
 		program.set(pos+1,(byte)((value>>>8)&0xff));
@@ -87,15 +95,6 @@ public class I386 extends pl0BaseListener{
 			(byte)((word>>>8)&0xff)
 		);
 	}
-	/*public void allocate(byte elements){
-		hint("sub esp, (byte)"+elements);
-		add_program(0x83,0xec,elements);
-	}
-	public void allocate(int elements){
-		hint("sub esp,"+elements);
-		add_program(0x81,0xec);
-		add_int(elements);
-	}*/
 	public void allocateSymbol(Symbol s){
 		symbols.add(s);
 	}
@@ -104,13 +103,13 @@ public class I386 extends pl0BaseListener{
 			hint("mov eax,ebp");
 			add_program(0x66,0x89,0xe8);
 		}else{
-			hint("mov eax,[ss:ebp-"+(4*(s.deep+1))+"]");
+			hint("mov eax,[ss:ebp-"+(4*(s.deep-deep-1))+"]");
 			add_program(0x36,0x66,0x67,0x8b,0x85);
-			add_int(4*(-s.deep-1));
+			add_int(2*(deep-s.deep+1));
 		}
-		hint("sub eax,"+(4*(s.deep+s.SP+1)));
+		hint("sub eax,"+(4*(s.deep+1+s.SP)));
 		add_program(0x66,0x2d);
-		add_int(4*(s.SP+s.deep+1));
+		add_int(4*(s.deep+1+s.SP));
 		push_EAX();
 	}
 	public void store(Symbol s){
@@ -151,18 +150,29 @@ public class I386 extends pl0BaseListener{
 	@Override public void exitProgram(pl0Parser.ProgramContext ctx){
 		hint("jmp $");
 		add_program(0xeb,0xfe);
+		while((program.size()&0x1ff)!=0){
+			add_program(0x90);
+		}
+		set_program_word(511+(program.size()>>9),0x2d);
 		print(path);
+		hint("PUSH/POP: "+push_pop_ratio);
 	}
 	@Override public void enterWhilestmt(pl0Parser.WhilestmtContext ctx){
-		String keyword = ctx.getParent().getPayload().toString();
 		jump_backwards.addFirst(program.size());
 	}
 	@Override public void exitWhilestmt(pl0Parser.WhilestmtContext ctx){
-		String keyword = ctx.getParent().getPayload().toString();
 		int pc = jump_backwards.pop();
-		hint("mov ecx,"+pc);
-		add_program(0x66,0xb9);
-		add_int(pc);
+		hint("jmp "+(pc-program.size()-4));
+		add_program(0x66,0xe9);
+		add_int(pc-program.size()-4);
+		pc = jump_requests.pop();
+		hint("WHILE: set start address to "+(program.size()-pc-4));
+		set_program(program.size()-pc-4,pc);
+	}
+	@Override public void exitIfstmt(pl0Parser.IfstmtContext ctx){
+		int pc = jump_requests.pop();
+		hint("IF: set start address to "+(program.size()-pc-4));
+		set_program(program.size()-pc-4,pc);
 	}
 	public void dereferenceStack_EAX(){
 		pop_EBX();
@@ -231,6 +241,7 @@ public class I386 extends pl0BaseListener{
 		int number = Integer.valueOf(ctx.NUMBER().getSymbol().getText());
 		hint("push "+number);
 		add_program(0x66,0x68);
+		push_pop_ratio+=4;
 		add_int(number);
 	}
 	@Override public void enterBlock(pl0Parser.BlockContext ctx){
@@ -246,8 +257,10 @@ public class I386 extends pl0BaseListener{
 				.getSymbol(),a,deep));
 		}
 		int size = 4*idc.size();
+		//add_program(0x66,0x89,0xe0,0x9a,0x80,0x01,0xc0,0x07); //TODO remove
 		hint("enter "+size+","+deep);
-		add_program(0xc8,(byte)(size&0xff),(byte)((size>>8)&0xff),deep);
+		add_program(0x66,0x67,0xc8,(byte)(size&0xff),(byte)((size>>8)&0xff),deep);
+		//add_program(0x66,0x89,0xe0,0x9a,0x80,0x01,0xc0,0x07); //TODO remove
 		if(ctx.getParent() instanceof pl0Parser.ProgramContext){
 			hint("jmp near <block>");
 			add_program(0x66,0xe9);
@@ -261,21 +274,22 @@ public class I386 extends pl0BaseListener{
 	}
 	@Override public void exitBlock(pl0Parser.BlockContext ctx){
 		hint("leave");
-		add_program(0xc9);
+		add_program(0x66,0x67,0xc9);
+		clearVariables();
+		deep--;
 	}
 	@Override public void exitProcedure(pl0Parser.ProcedureContext ctx){
 		hint("ret");	
-		add_program(0xc3);
-		clearVariables();
-		deep--;
+		add_program(0x66,0xc3);
 	}
 	@Override public void exitCallstmt(pl0Parser.CallstmtContext ctx){
 		String name = ctx.ident().STRING().getSymbol().getText();
 		Symbol s = findSymbol(name);
 		if(s!=null){
+			pop_EAX();
 			hint("call "+s.SP);
-			add_program(0xe8);	
-			add_word(s.SP-program.size()-2);
+			add_program(0x66,0xe8);	
+			add_int(s.SP-program.size()-3);
 		}else{
 			System.err.println("Procedure "+ctx.ident()+" not found");
 		}
@@ -314,7 +328,70 @@ public class I386 extends pl0BaseListener{
 				hint("div ebx");
 				add_program(0x66,0xf7,0xf3);
 				break;
+			case "=":
+				hint("test eax,ebx");
+				add_program(0x66,0x85,0xd8);
+				hint("jne <rel_addr>");
+				add_program(0x66,0x0f,0x85);
+				break;
+			case "#":
+				hint("test eax,ebx");
+				add_program(0x66,0x85,0xd8);
+				hint("je <rel_addr>");
+				add_program(0x66,0x0f,0x84);
+				break;
+			case ">=":
+				hint("cmp eax,ebx");
+				add_program(0x66,0x39,0xd8);
+				hint("jl <rel_addr>");
+				add_program(0x66,0x0f,0x8c);
+				break;
+			case "<=":
+				hint("cmp eax,ebx");
+				add_program(0x66,0x39,0xd8);
+				hint("jg <rel_addr>");
+				add_program(0x66,0x0f,0x8f);
+				break;
+			case ">":
+				hint("cmp eax,ebx");
+				add_program(0x66,0x39,0xd8);
+				hint("jle <rel_addr>");
+				add_program(0x66,0x0f,0x8d);
+				break;
+			case "<":
+				hint("cmp eax,ebx");
+				add_program(0x66,0x39,0xd8);
+				hint("jge <rel_addr>");
+				add_program(0x66,0x0f,0x8e);
+				break;
+			case "ODD":
+				hint("test eax,0x1");
+				add_program(0x66,0x85,0xd8);
+				hint("jnz <rel_addr>");
+				add_program(0x66,0x0f,0x85);
+				break;
 		}
+		switch(text){
+			case "=":
+			case "#":
+			case "<":
+			case ">":
+			case "<=":
+			case ">=":
+			case "ODD":
+				jump_requests.addFirst(program.size());
+				add_int(0);
+		}
+	}
+	@Override public void exitCondition(pl0Parser.ConditionContext ctx){
+		if(ctx.ODD()!=null){
+			pop_EAX();
+			switchText("ODD");
+		}else{
+			pop_EBX();
+			pop_EAX();
+			switchText(((TerminalNode)ctx.getChild(1)).getSymbol().getText());
+		}	
 	}
 	@Override public void exitExpression(pl0Parser.ExpressionContext ctx){
 		int children = ctx.getChildCount();
@@ -327,7 +404,7 @@ public class I386 extends pl0BaseListener{
 			if(((TerminalNode)ctx.getChild(0)).getSymbol().getText().equals("-")){
 				pop_EAX();
 				hint("neg eax");
-				add_program(0x66,0x7f,0xd8);
+				add_program(0x66,0xf7,0xd8);
 				push_EAX();
 			}
 		}
@@ -350,7 +427,7 @@ public class I386 extends pl0BaseListener{
 	@Override public void enterStatement(pl0Parser.StatementContext ctx){
 		if(ctx.getParent().getParent() instanceof pl0Parser.ProgramContext){	
 			int pc = jump_requests.pop();
-			hint("set start address to "+program.size());
+			hint("MAIN: set start address to "+(program.size()-pc-4));
 			set_program(program.size()-pc-4,pc);
 		}
 	}
