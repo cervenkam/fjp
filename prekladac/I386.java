@@ -289,7 +289,7 @@ public class I386 extends pl0BaseListener{
 			pop_EAX();
 			hint("call "+s.SP);
 			add_program(0x66,0xe8);	
-			add_int(s.SP-program.size()-3);
+			add_int(s.SP-program.size()-4);
 		}else{
 			System.err.println("Procedure "+ctx.ident()+" not found");
 		}

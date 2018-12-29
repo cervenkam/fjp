@@ -77,7 +77,7 @@ cti32:
 	retf
 times 0x180-($-$$) db 0x90    ; takto zajistim pevnou pozici volani vypisu
 pis32:
-	pusha
+	pushad
 	mov ebx,eax
 	mov cx,32
 	mov ah,0x0e ; kod pro zapis znaku
@@ -94,7 +94,7 @@ pis32:
 	int 0x10
 	mov al,13
 	int 0x10
-	popa
+	popad
 	retf
 skok_program:
 	mov eax,0xffffff
