@@ -1,15 +1,12 @@
+const x=3;
 procedure outer;
-	const $y=3;
-	var x;
 	procedure inner;
-	var x;
 	begin
-		x:=$y;
-		write x;
+		write inner;
 	end;
 	begin
-		x:=13;
-		call inner;
+		x:=6;
+		write x;
 	end;
 begin
 	call outer;

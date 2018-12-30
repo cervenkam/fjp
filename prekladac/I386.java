@@ -98,9 +98,6 @@ public class I386 extends pl0BaseListener{
 			(byte)((word>>>8)&0xff)
 		);
 	}
-	public void allocateSymbol(Symbol s){
-		symbols.add(s);
-	}
 	public void load(Symbol s){
 		if(s.deep == deep){
 			hint("mov eax,ebp");
@@ -210,13 +207,10 @@ public class I386 extends pl0BaseListener{
 		hint("mov eax,[ss:ebx]");
 		add_program(0x66,0x67,0x36,0x8b,0x03);
 	}
-	public void write(){
+	@Override public void exitWritestmt(pl0Parser.WritestmtContext ctx){
 		dereferenceStack_EAX();
 		hint("call write");
 		add_program(loader.write());
-	}
-	@Override public void exitWritestmt(pl0Parser.WritestmtContext ctx){
-		write();
 	}
 	@Override public void exitQstmt(pl0Parser.QstmtContext ctx){
 		//TODO
@@ -270,23 +264,19 @@ public class I386 extends pl0BaseListener{
 				load(s);
 			}
 		}else{
-			error("Symbol \""+name+"\" does not exists");
-		}
-	}
-	@Override public void exitMacro(pl0Parser.MacroContext ctx){
-		String name = ctx.STRING().getSymbol().getText();
-		Symbol s = findSymbol(constants,name);
-		if(s!=null){
-			if(!isADeclarationContext(ctx.getParent())){
-				push_int(s.SP);
+			s = findSymbol(constants,name);
+			if(s!=null){
+				if(!isADeclarationContext(ctx.getParent())){
+					push_int(s.SP);
+				}
+			}else{
+				error("Symbol \""+name+"\" does not exist");
 			}
-		}else{
-			error("Constant \""+name+"\" does not exists");
 		}
 	}
 	@Override public void exitNumber(pl0Parser.NumberContext ctx){
 		if(!(ctx.getParent() instanceof pl0Parser.ConstsContext)){
-			int number = Integer.valueOf(ctx.NUMBER().getSymbol().getText());
+			int number = parseInt(ctx.NUMBER().getSymbol().getText());
 			push_int(number);
 		}
 	}
@@ -305,15 +295,16 @@ public class I386 extends pl0BaseListener{
 			idc = ctx.vars().ident();
 		}
 		for(int a=0; a<idc.size(); a++){
-			allocateSymbol(new Symbol(idc.get(a).STRING()
+			symbols.add(new Symbol(idc.get(a).STRING()
 				.getSymbol(),a,deep));
 		}
 		if(ctx.consts()!=null){
-			List<pl0Parser.MacroContext> macon   = ctx.consts().macro();
+			List<pl0Parser.IdentContext> ident = ctx.consts().ident();
 			List<pl0Parser.NumberContext> numcon = ctx.consts().number();
-			for(int a=0; a<macon.size(); a++){
-				constants.add(new Symbol(macon.get(a).STRING().getSymbol(),
-					Integer.valueOf(numcon.get(a).NUMBER().getText()),deep));
+			for(int a=0; a<ident.size(); a++){
+				constants.add(new Symbol(ident.get(a).STRING().getSymbol(),
+					parseInt(numcon.get(a).NUMBER().getText()),
+					deep));
 			}
 		}
 		int size = 4*idc.size();
@@ -328,7 +319,7 @@ public class I386 extends pl0BaseListener{
 		add_int(0);
 	}
 	@Override public void enterProcedure(pl0Parser.ProcedureContext ctx){
-		allocateSymbol(new Symbol(ctx.ident().STRING().getSymbol(),
+		constants.add(new Symbol(ctx.ident().STRING().getSymbol(),
 			program.size(),deep));
 	}
 	@Override public void enterLabel(pl0Parser.LabelContext ctx){
@@ -357,13 +348,13 @@ public class I386 extends pl0BaseListener{
 	}
 	@Override public void exitCallstmt(pl0Parser.CallstmtContext ctx){
 		String name = ctx.ident().STRING().getSymbol().getText();
-		Symbol s = findSymbol(symbols,name);
+		Symbol s = findSymbol(constants,name);
 		if(s!=null){
 			hint("call "+s.SP);
 			add_program(0x66,0xe8);	
 			add_int(s.SP-program.size()-4);
 		}else{
-			error("Procedure "+ctx.ident()+" not found");
+			error("Procedure "+ctx.ident().STRING()+" not found");
 		}
 	}
 	@Override public void exitAssignstmt(pl0Parser.AssignstmtContext ctx){
@@ -492,8 +483,13 @@ public class I386 extends pl0BaseListener{
 	}
 	@Override public void exitFactor(pl0Parser.FactorContext ctx){
 		if(ctx.getChild(0) instanceof pl0Parser.IdentContext){
-			dereferenceStack_EAX();	
-			push_EAX();
+			pl0Parser.IdentContext idx=(pl0Parser.IdentContext)ctx.getChild(0);
+			String name = idx.STRING().getSymbol().getText();
+			Symbol s = findSymbol(symbols,name);
+			if(s!=null){
+				dereferenceStack_EAX();	
+				push_EAX();
+			}
 		}
 	}
 	@Override public void enterStatement(pl0Parser.StatementContext ctx){
@@ -501,6 +497,17 @@ public class I386 extends pl0BaseListener{
 			int pc = jump_requests.pop();
 			hint("MAIN: set start address to "+(program.size()-pc-4));
 			set_program(program.size()-pc-4,pc);
+		}
+	}
+	public int parseInt(String val){
+		if(val.startsWith("0x")){
+			return Integer.parseInt(val.substring(2),16);
+		}else if(val.startsWith("0b")){
+			return Integer.parseInt(val.substring(2),2);
+		}else if(val.charAt(0)=='0'){
+			return Integer.parseInt(val.substring(1),8);
+		}else{
+			return Integer.parseInt(val);
 		}
 	}
 }

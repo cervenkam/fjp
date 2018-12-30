@@ -9,7 +9,7 @@ block
    ;
 
 consts
-   : CONST macro '=' number (',' macro '=' number)* ';'
+   : CONST ident '=' number (',' ident '=' number)* ';'
    ;
 
 vars
@@ -85,16 +85,11 @@ term
 factor
    : ident
    | number
-   | macro
    | '(' expression ')'
    ;
 
 ident
    : STRING
-   ;
-
-macro
-   : '$' STRING
    ;
 
 number
@@ -304,7 +299,7 @@ STRING
    ;
 
 NUMBER
-   : [0-9]+
+   : ('0x' [0-9a-fA-F]+ | '0b' [01]+ | '0' [0-7]+ | [0-9]+)
    ;
 
 HEXSTRING
