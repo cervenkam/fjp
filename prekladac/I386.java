@@ -105,9 +105,9 @@ public class I386 extends pl0BaseListener{
 			hint("mov eax,ebp");
 			add_program(0x66,0x89,0xe8);
 		}else{
-			hint("mov eax,[ss:ebp-"+(4*(s.deep-deep-1))+"]");
+			hint("mov eax,[ss:ebp-"+(4*(deep-s.deep))+"]");
 			add_program(0x66,0x67,0x36,0x8b,0x85);
-			add_int(2*(deep-s.deep+1));
+			add_int(4*(s.deep-deep));
 		}
 		hint("sub eax,"+(4*(s.deep+1+s.SP)));
 		add_program(0x66,0x2d);
@@ -257,7 +257,8 @@ public class I386 extends pl0BaseListener{
 		Symbol s = findSymbol(name);
 		if(s!=null){
 			if(!(ctx.getParent() instanceof pl0Parser.VarsContext) &&
-			   !(ctx.getParent() instanceof pl0Parser.ProcedureContext)){
+			   !(ctx.getParent() instanceof pl0Parser.ProcedureContext) &&
+			   !(ctx.getParent() instanceof pl0Parser.CallstmtContext)){
 				load(s);
 			}
 		}else{
@@ -289,12 +290,12 @@ public class I386 extends pl0BaseListener{
 		add_program(0x66,0x67,0xc8,
 			(byte)(size&0xff),(byte)((size>>8)&0xff),deep);
 		//add_program(0x66,0x89,0xe0,0x9a,0x80,0x01,0xc0,0x07); //TODO remove
-		if(ctx.getParent() instanceof pl0Parser.ProgramContext){
+		//if(ctx.getParent() instanceof pl0Parser.ProgramContext){
 			hint("jmp near <block>");
 			add_program(0x66,0xe9);
 			jump_requests.addFirst(program.size());
 			add_int(0);
-		}
+		//}
 	}
 	@Override public void enterProcedure(pl0Parser.ProcedureContext ctx){
 		allocateSymbol(new Symbol(ctx.ident().STRING().getSymbol(),
@@ -325,7 +326,6 @@ public class I386 extends pl0BaseListener{
 		String name = ctx.ident().STRING().getSymbol().getText();
 		Symbol s = findSymbol(name);
 		if(s!=null){
-			pop_EAX();
 			hint("call "+s.SP);
 			add_program(0x66,0xe8);	
 			add_int(s.SP-program.size()-4);
@@ -464,7 +464,7 @@ public class I386 extends pl0BaseListener{
 		}
 	}
 	@Override public void enterStatement(pl0Parser.StatementContext ctx){
-		if(ctx.getParent().getParent() instanceof pl0Parser.ProgramContext){	
+		if(ctx.getParent() instanceof pl0Parser.BlockContext){	
 			int pc = jump_requests.pop();
 			hint("MAIN: set start address to "+(program.size()-pc-4));
 			set_program(program.size()-pc-4,pc);
