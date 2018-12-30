@@ -53,17 +53,17 @@ public class I386 extends pl0BaseListener{
 	}
 	public void push_EAX(){
 		hint("push eax");
-		add_program(0x66,0x50);
+		add_program(0x66,0x67,0x50);
 		push_pop_ratio+=4;
 	}
 	public void pop_EBX(){
 		hint("pop ebx");
-		add_program(0x66,0x5b);
+		add_program(0x66,0x67,0x5b);
 		push_pop_ratio-=4;
 	}
 	public void pop_EAX(){
 		hint("pop eax");
-		add_program(0x66,0x58);
+		add_program(0x66,0x67,0x58);
 		push_pop_ratio-=4;
 	}
 	public void add_program(byte... values){
@@ -104,7 +104,7 @@ public class I386 extends pl0BaseListener{
 			add_program(0x66,0x89,0xe8);
 		}else{
 			hint("mov eax,[ss:ebp-"+(4*(s.deep-deep-1))+"]");
-			add_program(0x36,0x66,0x67,0x8b,0x85);
+			add_program(0x66,0x67,0x36,0x8b,0x85);
 			add_int(2*(deep-s.deep+1));
 		}
 		hint("sub eax,"+(4*(s.deep+1+s.SP)));
@@ -177,7 +177,7 @@ public class I386 extends pl0BaseListener{
 	public void dereferenceStack_EAX(){
 		pop_EBX();
 		hint("mov eax,[ss:ebx]");
-		add_program(0x36,0x66,0x67,0x8b,0x03);
+		add_program(0x66,0x67,0x36,0x8b,0x03);
 	}
 	public void write(){
 		dereferenceStack_EAX();
@@ -240,7 +240,7 @@ public class I386 extends pl0BaseListener{
 	@Override public void exitNumber(pl0Parser.NumberContext ctx){
 		int number = Integer.valueOf(ctx.NUMBER().getSymbol().getText());
 		hint("push "+number);
-		add_program(0x66,0x68);
+		add_program(0x66,0x67,0x68);
 		push_pop_ratio+=4;
 		add_int(number);
 	}
@@ -298,7 +298,7 @@ public class I386 extends pl0BaseListener{
 		pop_EAX();
 		pop_EBX();
 		hint("mov [ss:ebx],eax");
-		add_program(0x36,0x66,0x67,0x89,0x03);
+		add_program(0x66,0x67,0x36,0x89,0x03);
 	}
 	public void clearVariables(){
 		for(int a=0; a<symbols.size(); a++){

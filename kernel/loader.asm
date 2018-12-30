@@ -97,7 +97,7 @@ pis32:
 	popad
 	retf
 skok_program:
-	mov eax,0xffffff
+	mov eax,0x9000
 	mov ebp,eax
 	mov esp,eax
 	xor eax,eax
