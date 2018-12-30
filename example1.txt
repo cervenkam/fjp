@@ -1,4 +1,5 @@
 var x;
 begin
+	x:=4/3;
 	write x;
 end.

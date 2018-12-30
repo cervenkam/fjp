@@ -49,7 +49,10 @@ beginstmt
    ;
 
 ifstmt
-   : IF condition THEN statement
+   : IF condition THEN statement elsebranch
+   ;
+elsebranch
+   : (ELSE statement)?
    ;
 
 whilestmt
@@ -113,6 +116,9 @@ THEN
    : T H E N
    ;
 
+ELSE
+   : E L S E
+   ;
 
 ODD
    : O D D

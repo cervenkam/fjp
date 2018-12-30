@@ -169,10 +169,23 @@ public class I386 extends pl0BaseListener{
 		hint("WHILE: set start address to "+(program.size()-pc-4));
 		set_program(program.size()-pc-4,pc);
 	}
-	@Override public void exitIfstmt(pl0Parser.IfstmtContext ctx){
+	@Override public void enterElsebranch(pl0Parser.ElsebranchContext ctx){
 		int pc = jump_requests.pop();
+		if(ctx.ELSE()!=null){
+			hint("jmp near <block>");
+			add_program(0x66,0xe9);
+			jump_requests.addFirst(program.size());
+			add_int(0);
+		}
 		hint("IF: set start address to "+(program.size()-pc-4));
 		set_program(program.size()-pc-4,pc);
+	}
+	@Override public void exitElsebranch(pl0Parser.ElsebranchContext ctx){
+		if(ctx.ELSE()!=null){
+			int pc = jump_requests.pop();
+			hint("ELSE: set start address to "+(program.size()-pc-4));
+			set_program(program.size()-pc-4,pc);
+		}
 	}
 	public void dereferenceStack_EAX(){
 		pop_EBX();
@@ -335,6 +348,8 @@ public class I386 extends pl0BaseListener{
 				add_program(0x66,0xf7,0xe3);
 				break;
 			case "/":
+				hint("xor edx,edx");
+				add_program(0x66,0x31,0xd2);
 				hint("div ebx");
 				add_program(0x66,0xf7,0xf3);
 				break;
@@ -410,8 +425,8 @@ public class I386 extends pl0BaseListener{
 	@Override public void exitTerm(pl0Parser.TermContext ctx){
 		int children = ctx.getChildCount();
 		if(children==3){
-			pop_EAX();
 			pop_EBX();
+			pop_EAX();
 			switchText(((TerminalNode)ctx.getChild(1)).getSymbol().getText());
 			push_EAX();
 		}
