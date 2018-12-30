@@ -24,6 +24,8 @@ public class I386 extends pl0BaseListener{
 	private final Deque<Integer> jump_backwards = new LinkedList<>();
 	private final List<Byte> program = new ArrayList<>();
 	private final List<Symbol> symbols = new ArrayList<>();
+	private final List<Symbol> goto_symbols = new ArrayList<>();
+	private final List<Symbol> labels = new ArrayList<>();
 	private final ILoader loader = new KernelLoader();
 	private final String path;
 	private byte deep = -1;
@@ -150,6 +152,18 @@ public class I386 extends pl0BaseListener{
 	@Override public void exitProgram(pl0Parser.ProgramContext ctx){
 		hint("jmp $");
 		add_program(0xeb,0xfe);
+		for(Symbol gt:goto_symbols){
+			for(Symbol lab:labels){
+				if(gt.ident.getText().equals(lab.ident.getText())){
+					if(gt.deep!=lab.deep){
+						System.err.println("ERR: goto "+gt.ident.getText()+
+							" - jump in different scope");
+					}
+					set_program(lab.SP-gt.SP-4,gt.SP);
+					break;
+				}	
+			}
+		}
 		while((program.size()&0x1ff)!=0){
 			add_program(0x90);
 		}
@@ -272,7 +286,8 @@ public class I386 extends pl0BaseListener{
 		int size = 4*idc.size();
 		//add_program(0x66,0x89,0xe0,0x9a,0x80,0x01,0xc0,0x07); //TODO remove
 		hint("enter "+size+","+deep);
-		add_program(0x66,0x67,0xc8,(byte)(size&0xff),(byte)((size>>8)&0xff),deep);
+		add_program(0x66,0x67,0xc8,
+			(byte)(size&0xff),(byte)((size>>8)&0xff),deep);
 		//add_program(0x66,0x89,0xe0,0x9a,0x80,0x01,0xc0,0x07); //TODO remove
 		if(ctx.getParent() instanceof pl0Parser.ProgramContext){
 			hint("jmp near <block>");
@@ -284,6 +299,17 @@ public class I386 extends pl0BaseListener{
 	@Override public void enterProcedure(pl0Parser.ProcedureContext ctx){
 		allocateSymbol(new Symbol(ctx.ident().STRING().getSymbol(),
 			program.size(),deep));
+	}
+	@Override public void enterLabel(pl0Parser.LabelContext ctx){
+		labels.add(new Symbol(ctx.STRING().getSymbol(),
+			program.size(),deep));
+	}
+	@Override public void enterGotostmt(pl0Parser.GotostmtContext ctx){
+		hint("jmp <???>");
+		add_program(0x66,0xe9);
+		goto_symbols.add(new Symbol(ctx.STRING().getSymbol(),
+			program.size(),deep));
+		add_int(0);
 	}
 	@Override public void exitBlock(pl0Parser.BlockContext ctx){
 		hint("leave");

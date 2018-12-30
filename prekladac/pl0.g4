@@ -21,7 +21,15 @@ procedure
    ;
 
 statement
-   : (assignstmt | callstmt | writestmt | qstmt | execstmt | beginstmt | ifstmt | whilestmt)?
+   : (assignstmt | callstmt | writestmt | qstmt | execstmt | beginstmt | ifstmt | whilestmt | gotostmt | label)?
+   ;
+
+gotostmt
+   : GOTO STRING
+   ;
+
+label
+   : LABEL STRING
    ;
 
 assignstmt
@@ -88,7 +96,6 @@ number
    : NUMBER
    ;
 
-
 WRITE
    : W R I T E
    ;
@@ -101,16 +108,13 @@ WHILE
    : W H I L E
    ;
 
-
 DO
    : D O
    ;
 
-
 IF
    : I F
    ;
-
 
 THEN
    : T H E N
@@ -124,31 +128,25 @@ ODD
    : O D D
    ;
 
-
 BEGIN
    : B E G I N
    ;
-
 
 END
    : E N D
    ;
 
-
 CALL
    : C A L L
    ;
-
 
 CONST
    : C O N S T
    ;
 
-
 VAR
    : V A R
    ;
-
 
 PROCEDURE
    : P R O C E D U R E
@@ -156,6 +154,14 @@ PROCEDURE
 
 EXECUTE
    : E X E C U T E
+   ;
+
+GOTO
+   : G O T O
+   ;
+
+LABEL
+   : L A B E L
    ;
 
 fragment A

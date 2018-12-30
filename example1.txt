@@ -1,5 +1,8 @@
-var x;
+procedure test;
 begin
-	x:=4/3;
-	write x;
+	label invalid;
+	execute 0x31c0
+end;
+begin
+	goto invalid;
 end.
