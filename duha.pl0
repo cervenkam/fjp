@@ -1,3 +1,4 @@
+const width=318,height=199;
 var clr,x,y,xinc,yinc;
 procedure stacktrace;
 	execute 0x6689e36667368b039a8001c0076683c3046681fb009000007ce9;
@@ -16,7 +17,6 @@ begin
 	call graphics_mode;
 	while 0=0 do begin
 		call draw_pixel;
-		//call stacktrace;
 		x:=x+xinc;
 		y:=y+yinc;
 		if x<=0 then
@@ -29,12 +29,12 @@ begin
 			yinc:=1;
 			clr:=clr+1;
 		end;
-		if x>=318 then
+		if x>=width then
 		begin
 			xinc:=-1;
 			clr:=clr+1;
 		end;
-		if y>=199 then
+		if y>=height then
 		begin
 			yinc:=-1;
 			clr:=clr+1;

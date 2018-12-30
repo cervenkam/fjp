@@ -293,7 +293,7 @@ public class I386 extends pl0BaseListener{
 			case  9: rule=4; break;
 			case 10: rule=5; break;
 			case 11: rule=6; break;
-			case 12: rule=7; break;
+			case 20: rule=7; break;
 		}
 		return map[rule][type];
 		
@@ -546,6 +546,8 @@ public class I386 extends pl0BaseListener{
 			return Integer.parseInt(val.substring(2),16);
 		}else if(val.startsWith("0b")){
 			return Integer.parseInt(val.substring(2),2);
+		}else if(val.equals("0")){
+			return 0;
 		}else if(val.charAt(0)=='0'){
 			return Integer.parseInt(val.substring(1),8);
 		}else{
