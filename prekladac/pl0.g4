@@ -9,7 +9,7 @@ block
    ;
 
 consts
-   : CONST ident '=' number (',' ident '=' number)* ';'
+   : CONST macro '=' number (',' macro '=' number)* ';'
    ;
 
 vars
@@ -85,11 +85,16 @@ term
 factor
    : ident
    | number
+   | macro
    | '(' expression ')'
    ;
 
 ident
    : STRING
+   ;
+
+macro
+   : '$' STRING
    ;
 
 number

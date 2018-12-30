@@ -26,6 +26,7 @@ public class I386 extends pl0BaseListener{
 	private final List<Symbol> symbols = new ArrayList<>();
 	private final List<Symbol> goto_symbols = new ArrayList<>();
 	private final List<Symbol> labels = new ArrayList<>();
+	private final List<Symbol> constants = new ArrayList<>();
 	private final ILoader loader = new KernelLoader();
 	private final String path;
 	private byte deep = -1;
@@ -40,9 +41,9 @@ public class I386 extends pl0BaseListener{
 		this.path = path;
 	}
 	public void hint(String hint){
-		StackTraceElement[] l = Thread.currentThread().getStackTrace();
+		/*StackTraceElement[] l = Thread.currentThread().getStackTrace();
 		System.out.println(l[2].getFileName()+":"+l[2].getLineNumber());
-		System.out.println("\t"+hint);
+		System.out.println("\t"+hint);*/
 	}
 	public void error(String message){
 		System.err.println(message);
@@ -127,8 +128,8 @@ public class I386 extends pl0BaseListener{
 		try{
 			Files.write(new File(path).toPath(),getArray());
 		}catch(IOException e){
-			System.err.println("Program cannot be saved!, details:");
 			e.printStackTrace();
+			error("Program cannot be saved!, details:");
 		}
 	}
 	public byte[] getArray(){
@@ -156,7 +157,7 @@ public class I386 extends pl0BaseListener{
 			for(Symbol lab:labels){
 				if(gt.ident.getText().equals(lab.ident.getText())){
 					if(gt.deep!=lab.deep){
-						System.err.println("ERR: goto "+gt.ident.getText()+
+						error("ERR: goto "+gt.ident.getText()+
 							" - jump in different scope");
 					}
 					set_program(lab.SP-gt.SP-4,gt.SP);
@@ -170,6 +171,9 @@ public class I386 extends pl0BaseListener{
 		set_program_word(511+(program.size()>>9),0x2d);
 		print(path);
 		hint("PUSH/POP: "+push_pop_ratio);
+		if(push_pop_ratio!=0){
+			error("Push/pop ratio is "+push_pop_ratio+", should be zero");
+		}
 	}
 	@Override public void enterWhilestmt(pl0Parser.WhilestmtContext ctx){
 		jump_backwards.addFirst(program.size());
@@ -241,10 +245,10 @@ public class I386 extends pl0BaseListener{
 			);
 		}
 	}
-	public Symbol findSymbol(String search){
+	public Symbol findSymbol(List<Symbol> syms,String search){
 		Symbol to_find = null;
-		for(int a=symbols.size()-1; a>=0; a--){
-			Symbol sym = symbols.get(a);
+		for(int a=syms.size()-1; a>=0; a--){
+			Symbol sym = syms.get(a);
 			if(sym.ident.getText().equals(search)){
 				to_find = sym;
 				break;
@@ -252,25 +256,45 @@ public class I386 extends pl0BaseListener{
 		}
 		return to_find;
 	}
+	public boolean isADeclarationContext(Object o){
+		return o instanceof pl0Parser.VarsContext ||
+			   o instanceof pl0Parser.ConstsContext ||
+			   o instanceof pl0Parser.ProcedureContext ||
+			   o instanceof pl0Parser.CallstmtContext;
+	}
 	@Override public void exitIdent(pl0Parser.IdentContext ctx){
 		String name = ctx.STRING().getSymbol().getText();
-		Symbol s = findSymbol(name);
+		Symbol s = findSymbol(symbols,name);
 		if(s!=null){
-			if(!(ctx.getParent() instanceof pl0Parser.VarsContext) &&
-			   !(ctx.getParent() instanceof pl0Parser.ProcedureContext) &&
-			   !(ctx.getParent() instanceof pl0Parser.CallstmtContext)){
+			if(!isADeclarationContext(ctx.getParent())){
 				load(s);
 			}
 		}else{
-			error("Symbol "+name+" does not exists");
+			error("Symbol \""+name+"\" does not exists");
+		}
+	}
+	@Override public void exitMacro(pl0Parser.MacroContext ctx){
+		String name = ctx.STRING().getSymbol().getText();
+		Symbol s = findSymbol(constants,name);
+		if(s!=null){
+			if(!isADeclarationContext(ctx.getParent())){
+				push_int(s.SP);
+			}
+		}else{
+			error("Constant \""+name+"\" does not exists");
 		}
 	}
 	@Override public void exitNumber(pl0Parser.NumberContext ctx){
-		int number = Integer.valueOf(ctx.NUMBER().getSymbol().getText());
-		hint("push "+number);
+		if(!(ctx.getParent() instanceof pl0Parser.ConstsContext)){
+			int number = Integer.valueOf(ctx.NUMBER().getSymbol().getText());
+			push_int(number);
+		}
+	}
+	public void push_int(int num){
+		hint("push "+num);
 		add_program(0x66,0x67,0x68);
 		push_pop_ratio+=4;
-		add_int(number);
+		add_int(num);
 	}
 	@Override public void enterBlock(pl0Parser.BlockContext ctx){
 		deep++;
@@ -284,18 +308,24 @@ public class I386 extends pl0BaseListener{
 			allocateSymbol(new Symbol(idc.get(a).STRING()
 				.getSymbol(),a,deep));
 		}
+		if(ctx.consts()!=null){
+			List<pl0Parser.MacroContext> macon   = ctx.consts().macro();
+			List<pl0Parser.NumberContext> numcon = ctx.consts().number();
+			for(int a=0; a<macon.size(); a++){
+				constants.add(new Symbol(macon.get(a).STRING().getSymbol(),
+					Integer.valueOf(numcon.get(a).NUMBER().getText()),deep));
+			}
+		}
 		int size = 4*idc.size();
 		//add_program(0x66,0x89,0xe0,0x9a,0x80,0x01,0xc0,0x07); //TODO remove
 		hint("enter "+size+","+deep);
 		add_program(0x66,0x67,0xc8,
 			(byte)(size&0xff),(byte)((size>>8)&0xff),deep);
 		//add_program(0x66,0x89,0xe0,0x9a,0x80,0x01,0xc0,0x07); //TODO remove
-		//if(ctx.getParent() instanceof pl0Parser.ProgramContext){
-			hint("jmp near <block>");
-			add_program(0x66,0xe9);
-			jump_requests.addFirst(program.size());
-			add_int(0);
-		//}
+		hint("jmp near <block>");
+		add_program(0x66,0xe9);
+		jump_requests.addFirst(program.size());
+		add_int(0);
 	}
 	@Override public void enterProcedure(pl0Parser.ProcedureContext ctx){
 		allocateSymbol(new Symbol(ctx.ident().STRING().getSymbol(),
@@ -315,7 +345,10 @@ public class I386 extends pl0BaseListener{
 	@Override public void exitBlock(pl0Parser.BlockContext ctx){
 		hint("leave");
 		add_program(0x66,0x67,0xc9);
-		clearVariables();
+		clearVariables(symbols);
+		clearVariables(constants);
+		clearVariables(goto_symbols);
+		clearVariables(labels);
 		deep--;
 	}
 	@Override public void exitProcedure(pl0Parser.ProcedureContext ctx){
@@ -324,13 +357,13 @@ public class I386 extends pl0BaseListener{
 	}
 	@Override public void exitCallstmt(pl0Parser.CallstmtContext ctx){
 		String name = ctx.ident().STRING().getSymbol().getText();
-		Symbol s = findSymbol(name);
+		Symbol s = findSymbol(symbols,name);
 		if(s!=null){
 			hint("call "+s.SP);
 			add_program(0x66,0xe8);	
 			add_int(s.SP-program.size()-4);
 		}else{
-			System.err.println("Procedure "+ctx.ident()+" not found");
+			error("Procedure "+ctx.ident()+" not found");
 		}
 	}
 	@Override public void exitAssignstmt(pl0Parser.AssignstmtContext ctx){
@@ -339,11 +372,11 @@ public class I386 extends pl0BaseListener{
 		hint("mov [ss:ebx],eax");
 		add_program(0x66,0x67,0x36,0x89,0x03);
 	}
-	public void clearVariables(){
-		for(int a=0; a<symbols.size(); a++){
-			Symbol s = symbols.get(a);
+	public void clearVariables(List<Symbol> syms){
+		for(int a=0; a<syms.size(); a++){
+			Symbol s = syms.get(a);
 			if(s.deep >= deep){
-				symbols.remove(a);
+				syms.remove(a);
 				hint("Removing symbol");
 				a--;
 			}

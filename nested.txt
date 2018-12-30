@@ -1,14 +1,10 @@
-procedure stacktrace;
-	execute 0x6689e36667368b039a8001c0076683c3046681fb009000007ce9;
-procedure printbasepointer;
-	execute 0x6689e89a8001c007;
 procedure outer;
+	const $y=3;
 	var x;
 	procedure inner;
 	var x;
 	begin
-		x:=16;
-		call stacktrace;
+		x:=$y;
 		write x;
 	end;
 	begin
