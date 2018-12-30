@@ -1,13 +1,13 @@
-const x=3;
+var x;
 procedure outer;
 	procedure inner;
 	begin
-		write inner;
-	end;
-	begin
-		x:=6;
 		write x;
 	end;
+	begin
+		call inner;
+	end;
 begin
+	x:=0x111;
 	call outer;
 end.

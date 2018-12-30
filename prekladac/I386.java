@@ -13,20 +13,36 @@ class Symbol{
 	public final Token ident;
 	public final int SP;
 	public final byte deep;
-	public Symbol(Token ident,int SP,byte deep){
+	public final byte type;
+	public Symbol(Token ident,int SP,byte deep,byte type){
 		this.ident = ident;
 		this.SP = SP;
 		this.deep = deep;
+		this.type = type;
 	}
 }
 public class I386 extends pl0BaseListener{
+	private static final byte TYPE_VARIABLE=0;
+	private static final byte TYPE_PROCEDURE=1;
+	private static final byte TYPE_CONSTANT=2;
+	private static final byte TYPE_LABEL=3;
+	private static final byte TYPE_GOTO=4;
+	private static final boolean[][] map = {
+		{false,false,true ,false,false},
+		{true ,false,false,false,false},
+		{false,true ,false,false,false},
+		{true ,false,false,false,false},
+		{false,true ,false,false,false},
+		{true ,false,true ,false,false},
+		{true ,false,false,false,false},
+		{true ,false,true ,false,false}
+	};
 	private final Deque<Integer> jump_requests = new LinkedList<>();
 	private final Deque<Integer> jump_backwards = new LinkedList<>();
 	private final List<Byte> program = new ArrayList<>();
 	private final List<Symbol> symbols = new ArrayList<>();
 	private final List<Symbol> goto_symbols = new ArrayList<>();
 	private final List<Symbol> labels = new ArrayList<>();
-	private final List<Symbol> constants = new ArrayList<>();
 	private final ILoader loader = new KernelLoader();
 	private final String path;
 	private byte deep = -1;
@@ -208,7 +224,17 @@ public class I386 extends pl0BaseListener{
 		add_program(0x66,0x67,0x36,0x8b,0x03);
 	}
 	@Override public void exitWritestmt(pl0Parser.WritestmtContext ctx){
-		dereferenceStack_EAX();
+		String name = ctx.ident().STRING().getSymbol().getText();
+		Symbol s = findSymbol(symbols,name);
+		if(s!=null){
+			if(s.type==TYPE_CONSTANT){
+				pop_EAX();
+			}else{
+				dereferenceStack_EAX();
+			}
+		}else{
+			error("Symbol \""+name+"\" does not exist");
+		}
 		hint("call write");
 		add_program(loader.write());
 	}
@@ -256,22 +282,39 @@ public class I386 extends pl0BaseListener{
 			   o instanceof pl0Parser.ProcedureContext ||
 			   o instanceof pl0Parser.CallstmtContext;
 	}
+	public boolean isValid(ParserRuleContext idx,int type){
+		int rule = 0;
+		//TODO dependent
+		switch(idx.getRuleIndex()){
+			case  2: rule=0; break;
+			case  3: rule=1; break;
+			case  4: rule=2; break;
+			case  8: rule=3; break;
+			case  9: rule=4; break;
+			case 10: rule=5; break;
+			case 11: rule=6; break;
+			case 12: rule=7; break;
+		}
+		return map[rule][type];
+		
+	}
 	@Override public void exitIdent(pl0Parser.IdentContext ctx){
 		String name = ctx.STRING().getSymbol().getText();
 		Symbol s = findSymbol(symbols,name);
 		if(s!=null){
-			if(!isADeclarationContext(ctx.getParent())){
-				load(s);
-			}
-		}else{
-			s = findSymbol(constants,name);
-			if(s!=null){
+			if(isValid(ctx.getParent(),s.type)){
 				if(!isADeclarationContext(ctx.getParent())){
-					push_int(s.SP);
+					if(s.type==TYPE_CONSTANT){
+						push_int(s.SP);	
+					}else{
+						load(s);
+					}
 				}
 			}else{
-				error("Symbol \""+name+"\" does not exist");
+				error("Symbol \""+name+"\" cannot be used in this context");
 			}
+		}else{
+			error("Symbol \""+name+"\" does not exist");
 		}
 	}
 	@Override public void exitNumber(pl0Parser.NumberContext ctx){
@@ -296,15 +339,15 @@ public class I386 extends pl0BaseListener{
 		}
 		for(int a=0; a<idc.size(); a++){
 			symbols.add(new Symbol(idc.get(a).STRING()
-				.getSymbol(),a,deep));
+				.getSymbol(),a,deep,TYPE_VARIABLE));
 		}
 		if(ctx.consts()!=null){
 			List<pl0Parser.IdentContext> ident = ctx.consts().ident();
 			List<pl0Parser.NumberContext> numcon = ctx.consts().number();
 			for(int a=0; a<ident.size(); a++){
-				constants.add(new Symbol(ident.get(a).STRING().getSymbol(),
+				symbols.add(new Symbol(ident.get(a).STRING().getSymbol(),
 					parseInt(numcon.get(a).NUMBER().getText()),
-					deep));
+					deep,TYPE_CONSTANT));
 			}
 		}
 		int size = 4*idc.size();
@@ -319,25 +362,24 @@ public class I386 extends pl0BaseListener{
 		add_int(0);
 	}
 	@Override public void enterProcedure(pl0Parser.ProcedureContext ctx){
-		constants.add(new Symbol(ctx.ident().STRING().getSymbol(),
-			program.size(),deep));
+		symbols.add(new Symbol(ctx.ident().STRING().getSymbol(),
+			program.size(),deep,TYPE_PROCEDURE));
 	}
 	@Override public void enterLabel(pl0Parser.LabelContext ctx){
 		labels.add(new Symbol(ctx.STRING().getSymbol(),
-			program.size(),deep));
+			program.size(),deep,TYPE_LABEL));
 	}
 	@Override public void enterGotostmt(pl0Parser.GotostmtContext ctx){
 		hint("jmp <???>");
 		add_program(0x66,0xe9);
 		goto_symbols.add(new Symbol(ctx.STRING().getSymbol(),
-			program.size(),deep));
+			program.size(),deep,TYPE_GOTO));
 		add_int(0);
 	}
 	@Override public void exitBlock(pl0Parser.BlockContext ctx){
 		hint("leave");
 		add_program(0x66,0x67,0xc9);
 		clearVariables(symbols);
-		clearVariables(constants);
 		clearVariables(goto_symbols);
 		clearVariables(labels);
 		deep--;
@@ -348,8 +390,8 @@ public class I386 extends pl0BaseListener{
 	}
 	@Override public void exitCallstmt(pl0Parser.CallstmtContext ctx){
 		String name = ctx.ident().STRING().getSymbol().getText();
-		Symbol s = findSymbol(constants,name);
-		if(s!=null){
+		Symbol s = findSymbol(symbols,name);
+		if(s!=null && s.type==TYPE_PROCEDURE){
 			hint("call "+s.SP);
 			add_program(0x66,0xe8);	
 			add_int(s.SP-program.size()-4);
@@ -486,7 +528,7 @@ public class I386 extends pl0BaseListener{
 			pl0Parser.IdentContext idx=(pl0Parser.IdentContext)ctx.getChild(0);
 			String name = idx.STRING().getSymbol().getText();
 			Symbol s = findSymbol(symbols,name);
-			if(s!=null){
+			if(s!=null && s.type==TYPE_VARIABLE){
 				dereferenceStack_EAX();	
 				push_EAX();
 			}
