@@ -4,14 +4,13 @@ procedure stacktrace;
 procedure graphics_mode;
 	execute 0xb81300cd10;
 procedure draw_pixel;
-	//execute 0xb80f0c31db36678b4c241836678b542414cd10;
 	execute 0xb40c36678a44241c31db36678b4c241836678b542414cd10;
 procedure cekej;
 	execute 0xb48631c9ba0020cd15;
 begin
 	x:=0;
 	y:=0;
-	clr:=15;
+	clr:=17;
 	xinc:=1;
 	yinc:=1;
 	call graphics_mode;
@@ -21,16 +20,25 @@ begin
 		x:=x+xinc;
 		y:=y+yinc;
 		if x<=0 then
+		begin
 			xinc:=1;
+			clr:=clr+1;
+		end;
 		if y<=0 then
+		begin
 			yinc:=1;
-		if x>=319 then
+			clr:=clr+1;
+		end;
+		if x>=318 then
+		begin
 			xinc:=-1;
+			clr:=clr+1;
+		end;
 		if y>=199 then
+		begin
 			yinc:=-1;
-		if x=0 then
-			if y=0 then
-				clr:=clr+1;
+			clr:=clr+1;
+		end;
 		//call cekej;
 	end;
 end.
