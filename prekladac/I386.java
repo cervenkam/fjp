@@ -312,6 +312,16 @@ public class I386 extends pl0BaseListener{
 	}
 	public void switchText(String text){
 		switch(text){
+			case "=":
+			case "#":
+			case ">=":
+			case "<=":
+			case "<":
+			case ">":
+				hint("cmp eax,ebx");
+				add_program(0x66,0x39,0xd8);
+		}
+		switch(text){
 			case "+":
 				hint("add eax,ebx");
 				add_program(0x66,0x01,0xd8);
@@ -329,38 +339,26 @@ public class I386 extends pl0BaseListener{
 				add_program(0x66,0xf7,0xf3);
 				break;
 			case "=":
-				hint("test eax,ebx");
-				add_program(0x66,0x85,0xd8);
 				hint("jne <rel_addr>");
 				add_program(0x66,0x0f,0x85);
 				break;
 			case "#":
-				hint("test eax,ebx");
-				add_program(0x66,0x85,0xd8);
 				hint("je <rel_addr>");
 				add_program(0x66,0x0f,0x84);
 				break;
 			case ">=":
-				hint("cmp eax,ebx");
-				add_program(0x66,0x39,0xd8);
 				hint("jl <rel_addr>");
 				add_program(0x66,0x0f,0x8c);
 				break;
 			case "<=":
-				hint("cmp eax,ebx");
-				add_program(0x66,0x39,0xd8);
 				hint("jg <rel_addr>");
 				add_program(0x66,0x0f,0x8f);
 				break;
 			case ">":
-				hint("cmp eax,ebx");
-				add_program(0x66,0x39,0xd8);
 				hint("jle <rel_addr>");
 				add_program(0x66,0x0f,0x8d);
 				break;
 			case "<":
-				hint("cmp eax,ebx");
-				add_program(0x66,0x39,0xd8);
 				hint("jge <rel_addr>");
 				add_program(0x66,0x0f,0x8e);
 				break;
