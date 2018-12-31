@@ -1,7 +1,0 @@
-VAR x,y;
-// nejaky blok
-BEGIN
-	y := 7*130+(26-1)*2;
-	x := y-30*(3+5);
-	WRITE x;
-END.
