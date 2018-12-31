@@ -1,0 +1,74 @@
+var last_x,last_y,dx,dy,depth;
+procedure graphics_mode;
+	execute 0xb81300cd10;
+procedure stacktrace;
+	//execute 0x6689e36667368b039a8001c0076683c3046681fb009000007ce9;
+	  execute 0x6689e36667368b039a8001c0076683c3046681fb808f00007ce9;
+procedure drawpixel;
+var clr,x,y;
+	//write last_x;
+	begin
+		x:=last_x;
+		y:=last_y;
+		clr:=0x0f;
+		execute 0xb40c36678a44240831db36678b4c240436678b542400cd10;
+		//call stacktrace; 
+		//execute 0xebfe;
+	end;
+procedure drawline;
+var line_start,line_end;
+begin
+	if dy=0 then begin
+		while dx>0 do begin
+			dx:=dx-1;
+			last_x:=last_x+1;
+			call drawpixel;
+		end;
+		while dx<0 do begin
+			dx:=dx+1;
+			last_x:=last_x-1;
+			call drawpixel;
+		end;
+	end else begin
+		while dy>0 do begin
+			dy:=dy-1;
+			last_y:=last_y+1;
+			call drawpixel;
+		end;
+		while dy<0 do begin
+			dy:=dy+1;
+			last_y:=last_y-1;
+			call drawpixel;
+		end;
+	end
+end;
+procedure hilbert;
+var DX,DY,DEPTH;
+begin
+	DEPTH:=depth; DX:=dx; DY:=dy; depth:=DEPTH-1;
+	if DEPTH>1 then begin
+		dx:=DY; dy:=DX; call hilbert;
+	end;
+	dx:=DX; dy:=DY; call drawline;
+	if DEPTH>1 then begin
+		call hilbert;
+	end;
+	dx:=DY; dy:=DX; call drawline;
+	if DEPTH>1 then begin
+		dx:=DX; dy:=DY; call hilbert;
+	end;
+	dx:=-DX; dy:=-DY; call drawline;
+	if DEPTH>1 then begin
+		dx:=-DY; dy:=-DX; call hilbert;
+	end;
+	depth:=DEPTH; dx:=DX; dy:=DY;
+end;
+begin
+	last_x:=0;
+	last_y:=0;
+	depth:=4;
+	dx:=5;
+	dy:=0;
+	call graphics_mode;
+	call hilbert;
+end.

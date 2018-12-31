@@ -45,7 +45,7 @@ public class I386 extends pl0BaseListener{
 	private final List<Symbol> labels = new ArrayList<>();
 	private final ILoader loader = new KernelLoader();
 	private final String path;
-	private byte deep = -1;
+	private byte deep = 0;
 	private int push_pop_ratio = 0;
 	public static void main(String[] args) throws IOException{
 		pl0Lexer lexer = new pl0Lexer(CharStreams.fromFileName(args[0]));
@@ -119,16 +119,9 @@ public class I386 extends pl0BaseListener{
 			hint("mov eax,ebp");
 			add_program(0x66,0x89,0xe8);
 		}else{
-			if(s.deep>0){
-				hint("mov eax,[ss:ebp-"+(4*s.deep)+"]");
-				add_program(0x66,0x67,0x36,0x8b,0x85);
-				add_int(-4*s.deep);
-			}else{
-				hint("mov eax,[ss:ebp-"+4+"]");
-				add_program(0x66,0x67,0x36,0x8b,0x45,0xfc);
-				hint("mov eax,[ss:eax]");
-				add_program(0x66,0x67,0x36,0x8b,0x00);
-			}
+			hint("mov eax,[ss:ebp-"+(4*s.deep)+"]");
+			add_program(0x66,0x67,0x36,0x8b,0x85);
+			add_int(-4*s.deep);
 		}
 		hint("sub eax,"+(4*(s.deep+1+s.SP)));
 		add_program(0x66,0x2d);
@@ -473,11 +466,11 @@ public class I386 extends pl0BaseListener{
 				break;
 			case ">":
 				hint("jle <rel_addr>");
-				add_program(0x66,0x0f,0x8d);
+				add_program(0x66,0x0f,0x8e);
 				break;
 			case "<":
 				hint("jge <rel_addr>");
-				add_program(0x66,0x0f,0x8e);
+				add_program(0x66,0x0f,0x8d);
 				break;
 			case "ODD":
 				hint("test eax,0x1");

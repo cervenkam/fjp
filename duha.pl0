@@ -5,7 +5,7 @@ procedure stacktrace;
 procedure graphics_mode;
 	execute 0xb81300cd10;
 procedure draw_pixel;
-	execute 0xb40c36678a44241c31db36678b4c241836678b542414cd10;
+	execute 0xb40c36678a44242031db36678b4c241c36678b542418cd10;
 procedure cekej;
 	execute 0xb48631c9ba0020cd15;
 begin
