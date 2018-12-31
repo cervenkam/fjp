@@ -166,18 +166,6 @@ public class I386 extends pl0BaseListener{
 	@Override public void exitProgram(pl0Parser.ProgramContext ctx){
 		hint("jmp $");
 		add_program(0xeb,0xfe);
-		for(Symbol gt:goto_symbols){
-			for(Symbol lab:labels){
-				if(gt.ident.getText().equals(lab.ident.getText())){
-					if(gt.deep!=lab.deep){
-						error("ERR: goto "+gt.ident.getText()+
-							" - jump in different scope");
-					}
-					set_program(lab.SP-gt.SP-4,gt.SP);
-					break;
-				}	
-			}
-		}
 		while((program.size()&0x1ff)!=0){
 			add_program(0x90);
 		}
@@ -382,6 +370,18 @@ public class I386 extends pl0BaseListener{
 	@Override public void exitBlock(pl0Parser.BlockContext ctx){
 		hint("leave");
 		add_program(0x66,0x67,0xc9);
+		for(Symbol gt:goto_symbols){
+			for(Symbol lab:labels){
+				if(gt.ident.getText().equals(lab.ident.getText())){
+					if(gt.deep!=lab.deep){
+						error("ERR: goto "+gt.ident.getText()+
+							" - jump in different scope");
+					}
+					set_program(lab.SP-gt.SP-4,gt.SP);
+					break;
+				}	
+			}
+		}
 		clearVariables(symbols);
 		clearVariables(goto_symbols);
 		clearVariables(labels);
