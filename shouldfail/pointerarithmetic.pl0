@@ -1,0 +1,6 @@
+var x;
+procedure empty;
+	execute 0x90;
+begin
+	x:=empty;
+end.

@@ -1,0 +1,9 @@
+var x;
+procedure proc;
+	const x=2;
+	begin
+		x:=3;
+	end;
+begin
+	call proc;
+end.

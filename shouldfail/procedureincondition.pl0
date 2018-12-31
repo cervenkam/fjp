@@ -1,0 +1,6 @@
+procedure proc;
+	execute 0x90;
+begin
+	while proc#0 do
+		execute 0x90
+end.

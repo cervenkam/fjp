@@ -1,0 +1,7 @@
+procedure proc;
+	begin
+		label inn;
+	end;
+begin
+	goto inn;
+end.

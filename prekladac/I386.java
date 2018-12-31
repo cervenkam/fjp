@@ -370,6 +370,7 @@ public class I386 extends pl0BaseListener{
 	@Override public void exitBlock(pl0Parser.BlockContext ctx){
 		hint("leave");
 		add_program(0x66,0x67,0xc9);
+		outer:
 		for(Symbol gt:goto_symbols){
 			for(Symbol lab:labels){
 				if(gt.ident.getText().equals(lab.ident.getText())){
@@ -378,9 +379,10 @@ public class I386 extends pl0BaseListener{
 							" - jump in different scope");
 					}
 					set_program(lab.SP-gt.SP-4,gt.SP);
-					break;
+					continue outer;
 				}	
 			}
+			error("Label \""+gt.ident.getText()+"\" not found");
 		}
 		clearVariables(symbols);
 		clearVariables(goto_symbols);

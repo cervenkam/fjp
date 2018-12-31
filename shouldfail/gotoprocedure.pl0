@@ -1,0 +1,7 @@
+procedure proc;
+	begin
+		execute 0x90;
+	end;
+begin
+	goto proc;
+end.

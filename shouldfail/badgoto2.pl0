@@ -1,0 +1,7 @@
+procedure proc;
+	begin
+		goto out;
+	end;
+begin
+	label out;
+end.
