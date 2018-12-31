@@ -1,5 +1,6 @@
 //puvod algoritmu:
 //http://csharphelper.com/blog/2014/07/draw-a-hilbert-curve-fractal-in-c/
+const start_x=60,start_y=5;
 var last_x,last_y,dx,dy,depth,globl_clr;
 procedure graphics_mode;
 	execute 0xb81300cd10;
@@ -7,11 +8,14 @@ procedure stacktrace;
 	execute 0x6689e36667368b039a8001c0076683c3046681fb808f00007ce9;
 procedure drawpixel;
 var clr,x,y;
+	procedure cekej;
+		execute 0xb48631c9ba0008cd15;
 	begin
 		x:=last_x;
 		y:=last_y;
 		clr:=globl_clr;
-		execute 0xb40c36678a442408242f31db36678b4c240436678b542400cd10;
+		execute 0xb40c36678a442408240f0c2031db36678b4c240436678b542400cd10;
+		call cekej;
 	end;
 procedure drawline;
 var line_start,line_end;
@@ -39,6 +43,7 @@ begin
 			last_y:=last_y-1;
 		end;
 	end;
+	call drawpixel;
 	globl_clr:=globl_clr+1;
 end;
 procedure hilbert;
@@ -63,10 +68,10 @@ begin
 	depth:=DEPTH; dx:=DX; dy:=DY;
 end;
 begin
-	last_x:=83;
-	last_y:=22;
-	depth:=5;
-	dx:=5;
+	last_x:=start_x;
+	last_y:=start_y;
+	depth:=6;
+	dx:=3;
 	dy:=0;
 	globl_clr:=0x20;
 	call graphics_mode;

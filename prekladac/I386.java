@@ -239,11 +239,11 @@ public class I386 extends pl0BaseListener{
 		add_program(loader.write());
 	}
 	@Override public void exitQstmt(pl0Parser.QstmtContext ctx){
-		//TODO
-		pop_EAX();
 		hint("call read");
 		add_program(loader.read());
-		push_EAX();
+		pop_EBX();
+		hint("mov [ss:ebx],eax");
+		add_program(0x66,0x67,0x36,0x89,0x03);
 	}
 	private byte hex2byte(char c){
 		if(c<='9' && c>='0'){
