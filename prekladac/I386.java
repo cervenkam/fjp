@@ -119,9 +119,16 @@ public class I386 extends pl0BaseListener{
 			hint("mov eax,ebp");
 			add_program(0x66,0x89,0xe8);
 		}else{
-			hint("mov eax,[ss:ebp-"+(4*(deep-s.deep))+"]");
-			add_program(0x66,0x67,0x36,0x8b,0x85);
-			add_int(4*(s.deep-deep));
+			if(s.deep>0){
+				hint("mov eax,[ss:ebp-"+(4*s.deep)+"]");
+				add_program(0x66,0x67,0x36,0x8b,0x85);
+				add_int(-4*s.deep);
+			}else{
+				hint("mov eax,[ss:ebp-"+4+"]");
+				add_program(0x66,0x67,0x36,0x8b,0x45,0xfc);
+				hint("mov eax,[ss:eax]");
+				add_program(0x66,0x67,0x36,0x8b,0x00);
+			}
 		}
 		hint("sub eax,"+(4*(s.deep+1+s.SP)));
 		add_program(0x66,0x2d);
@@ -257,7 +264,10 @@ public class I386 extends pl0BaseListener{
 		}
 	}
 	@Override public void exitExecstmt(pl0Parser.ExecstmtContext ctx){
-		String text = ctx.HEXSTRING().getSymbol().getText();
+		String text = ctx.NUMBER().getSymbol().getText();
+		if(!text.startsWith("0x")){
+			error("Use execute with hexadecimal value, starting with '0x'");
+		}
 		for(int a=2; a<text.length(); a+=2){
 			add_program(
 				(hex2byte(text.charAt(a))<<4)+

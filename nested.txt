@@ -2,12 +2,13 @@ var x;
 procedure outer;
 	procedure inner;
 	begin
+		execute 0x6689e36667368b039a8001c0076683c3046681fb009000007ce9;
 		write x;
 	end;
 	begin
 		call inner;
 	end;
 begin
-	x:=0x111;
+	x:=0x55555555;
 	call outer;
 end.

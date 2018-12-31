@@ -49,7 +49,7 @@ qstmt
    ;
 
 execstmt
-   : EXECUTE HEXSTRING
+   : EXECUTE NUMBER
    ;
 
 beginstmt
@@ -296,10 +296,6 @@ fragment Z
 
 STRING
    : [a-zA-Z_]+
-   ;
-
-HEXSTRING
-   : '0x' [0-9a-fA-F]+
    ;
 
 NUMBER
