@@ -1,0 +1,17 @@
+var a,fizz,buzz,fizzbuzz;
+begin
+	fizz:=0x300;
+	buzz:=0x500;
+	fizzbuzz:=0xf00;
+	a:=0;
+	while a<=20 do begin
+		if a/15*15=a then
+			write fizzbuzz
+		else if a/3*3=a then
+			write fizz
+		else if a/5*5=a then
+			write buzz
+		else write a;
+		a:=a+1
+	end;
+end.

@@ -7,7 +7,7 @@ procedure graphics_mode;
 procedure stacktrace;
 	execute 0x6689e36667368b039a8001c0076683c3046681fb808f00007ce9;
 procedure drawpixel;
-var clr,x,y;
+	var clr,x,y;
 	procedure cekej;
 		execute 0xb48631c9ba0008cd15;
 	begin
@@ -18,55 +18,55 @@ var clr,x,y;
 		call cekej;
 	end;
 procedure drawline;
-var line_start,line_end;
-begin
-	if dy=0 then begin
-		while dx>0 do begin
-			call drawpixel;
-			dx:=dx-1;
-			last_x:=last_x+1;
+	var line_start,line_end;
+	begin
+		if dy=0 then begin
+			while dx>0 do begin
+				call drawpixel;
+				dx:=dx-1;
+				last_x:=last_x+1;
+			end;
+			while dx<0 do begin
+				call drawpixel;
+				dx:=dx+1;
+				last_x:=last_x-1;
+			end;
+		end else begin
+			while dy>0 do begin
+				call drawpixel;
+				dy:=dy-1;
+				last_y:=last_y+1;
+			end;
+			while dy<0 do begin
+				call drawpixel;
+				dy:=dy+1;
+				last_y:=last_y-1;
+			end;
 		end;
-		while dx<0 do begin
-			call drawpixel;
-			dx:=dx+1;
-			last_x:=last_x-1;
-		end;
-	end else begin
-		while dy>0 do begin
-			call drawpixel;
-			dy:=dy-1;
-			last_y:=last_y+1;
-		end;
-		while dy<0 do begin
-			call drawpixel;
-			dy:=dy+1;
-			last_y:=last_y-1;
-		end;
+		call drawpixel;
+		globl_clr:=globl_clr+1;
 	end;
-	call drawpixel;
-	globl_clr:=globl_clr+1;
-end;
 procedure hilbert;
-var DX,DY,DEPTH;
-begin
-	DEPTH:=depth; DX:=dx; DY:=dy; depth:=DEPTH-1;
-	if DEPTH>1 then begin
-		dx:=DY; dy:=DX; call hilbert;
+	var DX,DY,DEPTH;
+	begin
+		DEPTH:=depth; DX:=dx; DY:=dy; depth:=DEPTH-1;
+		if DEPTH>1 then begin
+			dx:=DY; dy:=DX; call hilbert;
+		end;
+		dx:=DX; dy:=DY; call drawline;
+		if DEPTH>1 then begin
+			dx:=DX; dy:=DY; call hilbert;
+		end;
+		dx:=DY; dy:=DX; call drawline;
+		if DEPTH>1 then begin
+			dx:=DX; dy:=DY; call hilbert;
+		end;
+		dx:=-DX; dy:=-DY; call drawline;
+		if DEPTH>1 then begin
+			dx:=-DY; dy:=-DX; call hilbert;
+		end;
+		depth:=DEPTH; dx:=DX; dy:=DY;
 	end;
-	dx:=DX; dy:=DY; call drawline;
-	if DEPTH>1 then begin
-		dx:=DX; dy:=DY; call hilbert;
-	end;
-	dx:=DY; dy:=DX; call drawline;
-	if DEPTH>1 then begin
-		dx:=DX; dy:=DY; call hilbert;
-	end;
-	dx:=-DX; dy:=-DY; call drawline;
-	if DEPTH>1 then begin
-		dx:=-DY; dy:=-DX; call hilbert;
-	end;
-	depth:=DEPTH; dx:=DX; dy:=DY;
-end;
 begin
 	last_x:=start_x;
 	last_y:=start_y;
