@@ -1,46 +1,45 @@
-var last_x,last_y,dx,dy,depth;
+//puvod algoritmu:
+//http://csharphelper.com/blog/2014/07/draw-a-hilbert-curve-fractal-in-c/
+var last_x,last_y,dx,dy,depth,globl_clr;
 procedure graphics_mode;
 	execute 0xb81300cd10;
 procedure stacktrace;
-	//execute 0x6689e36667368b039a8001c0076683c3046681fb009000007ce9;
-	  execute 0x6689e36667368b039a8001c0076683c3046681fb808f00007ce9;
+	execute 0x6689e36667368b039a8001c0076683c3046681fb808f00007ce9;
 procedure drawpixel;
 var clr,x,y;
-	//write last_x;
 	begin
 		x:=last_x;
 		y:=last_y;
-		clr:=0x0f;
-		execute 0xb40c36678a44240831db36678b4c240436678b542400cd10;
-		//call stacktrace; 
-		//execute 0xebfe;
+		clr:=globl_clr;
+		execute 0xb40c36678a442408242f31db36678b4c240436678b542400cd10;
 	end;
 procedure drawline;
 var line_start,line_end;
 begin
 	if dy=0 then begin
 		while dx>0 do begin
+			call drawpixel;
 			dx:=dx-1;
 			last_x:=last_x+1;
-			call drawpixel;
 		end;
 		while dx<0 do begin
+			call drawpixel;
 			dx:=dx+1;
 			last_x:=last_x-1;
-			call drawpixel;
 		end;
 	end else begin
 		while dy>0 do begin
+			call drawpixel;
 			dy:=dy-1;
 			last_y:=last_y+1;
-			call drawpixel;
 		end;
 		while dy<0 do begin
+			call drawpixel;
 			dy:=dy+1;
 			last_y:=last_y-1;
-			call drawpixel;
 		end;
-	end
+	end;
+	globl_clr:=globl_clr+1;
 end;
 procedure hilbert;
 var DX,DY,DEPTH;
@@ -51,7 +50,7 @@ begin
 	end;
 	dx:=DX; dy:=DY; call drawline;
 	if DEPTH>1 then begin
-		call hilbert;
+		dx:=DX; dy:=DY; call hilbert;
 	end;
 	dx:=DY; dy:=DX; call drawline;
 	if DEPTH>1 then begin
@@ -64,11 +63,12 @@ begin
 	depth:=DEPTH; dx:=DX; dy:=DY;
 end;
 begin
-	last_x:=0;
-	last_y:=0;
-	depth:=4;
+	last_x:=83;
+	last_y:=22;
+	depth:=5;
 	dx:=5;
 	dy:=0;
+	globl_clr:=0x20;
 	call graphics_mode;
 	call hilbert;
 end.
