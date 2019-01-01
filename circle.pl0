@@ -1,25 +1,44 @@
+//dimensions of the screen, BIOS mode 256colors => 320x200 pixels
 const width=320,height=200;
+//current position [x,y] (relative to the center) and current color clr
 var x,y,clr;
+//procedure which switches to graphics mode
 procedure graphics_mode;
+	//uses BIOS interrupt call (objdump if you are interested more)
 	execute 0xb81300cd10;
+//procedure draws one pixel specified by [x,y] and clr on the screen
 procedure drawpixel;
+	//position (absolute) of the pixel, current color
 	var loc_clr,loc_x,loc_y;
 	begin
+		//recalculate absolute position
 		loc_x:=x+width/2;
 		loc_y:=y+height/2;
+		//and copy the color
 		loc_clr:=clr;
+		//lets draw the pixel (objdump ;))
 		execute 0xb40c36678a442408240f0c2031db36678b4c240436678b542400cd10;
 	end;
 begin
+	//lets set the relative position to top border
 	y:=-height/2;
+	//switch into the graphics mode
 	call graphics_mode;
+	//while it not hits bottom border
 	while y<height/2 do begin
+		//set the relative position to the left border
 		x:=-width/2;
+		//while it is still on screen
 		while x<width/2 do begin
+			//calculate distance (square, no sqrt unfortunatelly...)
+			//from the center
 			clr:=(x*x+y*y)/100;
+			//draws current pixel
 			call drawpixel;
+			//and moves one pixel right
 			x:=x+1;
 		end;
+		//moves one line down
 		y:=y+1;
 	end;
 end.

@@ -1,17 +1,30 @@
-var a,fizz,buzz,fizzbuzz;
+//constants, an only output system call can print only numbers,
+//so this numbers are <<16'd so the difference is visible
+const fizz=0x300,buzz=0x500,fizzbuzz=0xf00;
+//current number
+var a;
 begin
-	fizz:=0x300;
-	buzz:=0x500;
-	fizzbuzz:=0xf00;
+	//normally it should start at 1, but I want to test zero too...
 	a:=0;
+	//for a in <0;20>
 	while a<=20 do begin
+		//if the number is divisible by 15
 		if a/15*15=a then
+			//print fizzbuzz
 			write fizzbuzz
+		//else if it is divisible only by 3
 		else if a/3*3=a then
+			//then write only fizz
 			write fizz
+		//or it can be divisible only by 5
 		else if a/5*5=a then
+			//then write only buzz
 			write buzz
-		else write a;
+		//else it is not divisible
+		else
+			//so write the current number
+			write a;
+		//increment the number
 		a:=a+1
 	end;
 end.

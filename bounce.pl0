@@ -1,44 +1,74 @@
+//constants - width and height of the screen in BIOS 256color mode
+//it is actually 320x200, but it is made for better bouncing ;)
 const width=318,height=199;
+//variables used in this program, clr is the current color if the boucing
+//object, [x,y] current position and [xinc,yinc] current speed.
 var clr,x,y,xinc,yinc;
-procedure stacktrace;
-	execute 0x6689e36667368b039a8001c0076683c3046681fb009000007ce9;
+//procedure which switches to graphics mode
 procedure graphics_mode;
+	//uses BIOS interrupt call (objdump if you are interested more)
 	execute 0xb81300cd10;
+//procedure draws one pixel specified by [x,y] and clr on the screen
 procedure draw_pixel;
+	//uses a little bit of stack smashing :D, uses BIOS call as well,
+	//even it can be done by direct write into video memory.
 	execute 0xb40c36678a44242031db36678b4c241c36678b542418cd10;
-procedure cekej;
+//waits a while to be able to animate
+procedure wait;
+	//uses BIOS as well...
 	execute 0xb48631c9ba0008cd15;
+//begin of this program
 begin
+	//initialize starting position
 	x:=0;
 	y:=0;
-	clr:=17;
+	//and speed
 	xinc:=1;
 	yinc:=1;
+	//and starting color
+	clr:=17;
+	//lets start with switching into graphics mode
 	call graphics_mode;
+	//infinite loop
 	while 0=0 do begin
+		//draw current pixel
 		call draw_pixel;
+		//move current pixel by its velocity vector
 		x:=x+xinc;
 		y:=y+yinc;
+		//if it reaches left border of the screen
 		if x<=0 then
 		begin
+			//change velocity to move right
 			xinc:=1;
+			//and switch color to next one
 			clr:=clr+1;
 		end;
+		//if it reaches top border of the screen
 		if y<=0 then
 		begin
+			//change velocity to move down
 			yinc:=1;
+			//and switch color to next one
 			clr:=clr+1;
 		end;
+		//if it reaches right border of the screen
 		if x>=width then
 		begin
+			//change velocity to move left
 			xinc:=-1;
+			//and switch color to next one
 			clr:=clr+1;
 		end;
+		//if it reaches bottom border of the screen
 		if y>=height then
 		begin
+			//change velocity to move up
 			yinc:=-1;
+			//and switch color to next one
 			clr:=clr+1;
 		end;
-		call cekej;
+		//wait a while to make a good animation
+		call wait;
 	end;
 end.

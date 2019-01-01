@@ -1,54 +1,90 @@
-//puvod algoritmu:
+//program draws hilbert curve
+//algorithm:
 //http://csharphelper.com/blog/2014/07/draw-a-hilbert-curve-fractal-in-c/
+//starting position of the hilbert curve
 const start_x=60,start_y=5;
+//position of last painted pixel [last_x,last_y], difference of the current line
+//[dx,dy], current recursion depth and color of the line.
 var last_x,last_y,dx,dy,depth,globl_clr;
+//procedure which switches to graphics mode
 procedure graphics_mode;
+	//uses BIOS interrupt call (objdump if you are interested more)
 	execute 0xb81300cd10;
-procedure stacktrace;
-	execute 0x6689e36667368b039a8001c0076683c3046681fb808f00007ce9;
+//procedure draws one pixel specified by [x,y] and clr on the screen
 procedure drawpixel;
+	//position of the pixel, current color
 	var clr,x,y;
-	procedure cekej;
+	//waits a bit
+	procedure wait;
+		//BIOS call for waiting... (objdump)
 		execute 0xb48631c9ba0008cd15;
 	begin
+		//copy position and color into current scope
 		x:=last_x;
 		y:=last_y;
 		clr:=globl_clr;
+		//lets draw the pixel (objdump ;))
 		execute 0xb40c36678a442408240f0c2031db36678b4c240436678b542400cd10;
-		call cekej;
+		//and wait to make better animation
+		call wait;
 	end;
+//procedure draws an orthogonal line ([x,0] or [0,y])
 procedure drawline;
+	//begin and end of the current line
 	var line_start,line_end;
 	begin
+		//if dy is zero, we will change only X coordinate
 		if dy=0 then begin
+			//until we have finished line in positive manner
 			while dx>0 do begin
+				//draw current pixel
 				call drawpixel;
+				//decrease X coordinate
 				dx:=dx-1;
+				//and increase last pixel X coordinate
 				last_x:=last_x+1;
 			end;
+			//until we have finished line in negative manner
 			while dx<0 do begin
+				//draw current pixel
 				call drawpixel;
+				//increase X coordinate
 				dx:=dx+1;
+				//and decrease last pixel X coordinate
 				last_x:=last_x-1;
 			end;
+		//else we will change only Y coordinate
 		end else begin
+			//until we have finished line in positive manner
 			while dy>0 do begin
+				//draw current pixel
 				call drawpixel;
+				//decrease Y coordinate
 				dy:=dy-1;
+				//and increase last pixel Y coordinate
 				last_y:=last_y+1;
 			end;
+			//until we have finished line in negative manner
 			while dy<0 do begin
+				//draw current pixel
 				call drawpixel;
+				//increase Y coordinate
 				dy:=dy+1;
+				//and decrease last pixel Y coordinate
 				last_y:=last_y-1;
 			end;
 		end;
+		//lets finish the line
 		call drawpixel;
+		//and change color for the next line
 		globl_clr:=globl_clr+1;
 	end;
 procedure hilbert;
 	var DX,DY,DEPTH;
 	begin
+		//this is what I call "argument passing", global variables
+		//are assigned to local ones to save them for later,
+		//arguments are then passed by the global variables
 		DEPTH:=depth; DX:=dx; DY:=dy; depth:=DEPTH-1;
 		if DEPTH>1 then begin
 			dx:=DY; dy:=DX; call hilbert;
@@ -65,15 +101,23 @@ procedure hilbert;
 		if DEPTH>1 then begin
 			dx:=-DY; dy:=-DX; call hilbert;
 		end;
+		//lets restore global variables
 		depth:=DEPTH; dx:=DX; dy:=DY;
 	end;
 begin
+	//set the starting coordinates [last_x,last_y] to the constant ones
 	last_x:=start_x;
 	last_y:=start_y;
+	//set the depth of hilbert curve
 	depth:=6;
+	//set one line starting length in X direction
 	dx:=3;
+	//set one line starting length in Y direction
 	dy:=0;
+	//initialize the color
 	globl_clr:=0x20;
+	//switch to graphics mode
 	call graphics_mode;
+	//and call recursive algoritm
 	call hilbert;
 end.
