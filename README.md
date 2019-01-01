@@ -32,6 +32,7 @@ with **run.sh** script:
 
 This command opens **QEMU** emulator and runs the program.
 
+## Bare HW & disclaimer
 The second option
 to run this _program_ is run it on bare hardware, but it runs in unreal
 mode which means it can potentially corrupt anything (filesystem etc.),
@@ -42,6 +43,19 @@ If you still want to run it on bare HW, generated file (for instance `out.bin`)
 is actually a OS image, which can be booted, so commands like `dd` can be
 usefull.
 
+## Custom program
+If you are interested in writing your own program, you may need to look
+at the [grammar](compiler/pl0.g4), because this **PL0** has been modified
+a bit.
+
+## What to expect
+This compiler has been writen as a semestral work by one guy. Because of
+lack of time, it does not have any sort of optimalization at all, which
+means the generated programs are slow (even slower than Java :grin:).
+It really needs some kind of argument passing, if you look at
+[hilbert](hilbert.pl0) source code, it has been solved by explicit
+assigning to local variables, which really reduces the readability
+of the source code.
 ## Author
 * Martin &Ccaron;ervenka
 ### Special thanks
@@ -67,3 +81,4 @@ generates concentric circles and tests loops. Third example
 (program `bounce.pl0`) draws bouncing object in 45 degrees. It tests correct
 compilation of conditions. The last example (program `fizzbuzz.pl0`)
 (look it up if do not know fizzbuzz program) tests mainly arithmetic.
+
