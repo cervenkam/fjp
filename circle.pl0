@@ -1,0 +1,25 @@
+const width=320,height=200;
+var x,y,clr;
+procedure graphics_mode;
+	execute 0xb81300cd10;
+procedure drawpixel;
+	var loc_clr,loc_x,loc_y;
+	begin
+		loc_x:=x+width/2;
+		loc_y:=y+height/2;
+		loc_clr:=clr;
+		execute 0xb40c36678a442408240f0c2031db36678b4c240436678b542400cd10;
+	end;
+begin
+	y:=-height/2;
+	call graphics_mode;
+	while y<height/2 do begin
+		x:=-width/2;
+		while x<width/2 do begin
+			clr:=(x*x+y*y)/100;
+			call drawpixel;
+			x:=x+1;
+		end;
+		y:=y+1;
+	end;
+end.
