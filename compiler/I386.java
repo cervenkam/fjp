@@ -9,61 +9,115 @@ import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.Deque;
 import java.util.Collections;
+/**
+ * Wrapping class containing information about one symbol
+ * - for instance variable, constant, procedure, label etc.
+ * @author Martin Cervenka
+ * @version 20190101
+ */
 class Symbol{
+	/** Token containing ANTLR informations about given symbol */
 	public final Token ident;
-	public final int SP;
+	/** Pointer (stack/code), where given symbol exists */
+	public final int pointer;
+	/** Degree of deepness, where is the symbol declared */
 	public final byte deep;
+	/** Type of the symbol */
 	public final byte type;
-	public Symbol(Token ident,int SP,byte deep,byte type){
+	/**
+	 * C'tor of the symbol
+	 * @param ident Token containing ANTLR informations about given symbol
+	 * @param pointer Pointer (stack/code), where given symbol exists
+	 * @param deep Degree of deepness, where is the symbol declared
+	 * @param type Type of the symbol
+	 */
+	public Symbol(Token ident,int pointer,byte deep,byte type){
 		this.ident = ident;
-		this.SP = SP;
+		this.pointer = pointer;
 		this.deep = deep;
 		this.type = type;
 	}
 }
+/**
+ * Compilator class
+ * @author Martin Cervenka
+ * @version 20190101
+ */
 public class I386 extends pl0BaseListener{
+	/** Type of the symbol - variable */
 	private static final byte TYPE_VARIABLE=0;
+	/** Type of the symbol - procedure */
 	private static final byte TYPE_PROCEDURE=1;
+	/** Type of the symbol - constant */
 	private static final byte TYPE_CONSTANT=2;
+	/** Type of the symbol - label */
 	private static final byte TYPE_LABEL=3;
+	/** Type of the symbol - goto statement */
 	private static final byte TYPE_GOTO=4;
-	private static final boolean[][] map = {
-		{false,false,true ,false,false},
-		{true ,false,false,false,false},
-		{false,true ,false,false,false},
-		{true ,false,false,false,false},
-		{false,true ,false,false,false},
-		{true ,false,true ,false,false},
-		{true ,false,false,false,false},
-		{true ,false,true ,false,false}
-	};
+	/** Stack of jump request (jumps forward) - program pointers,
+		where address will be filled in the future */
 	private final Deque<Integer> jump_requests = new LinkedList<>();
+	/** Stack of backwards jumps - contains pointers to locations,
+		where the program will be jumping in the future */
 	private final Deque<Integer> jump_backwards = new LinkedList<>();
+	/** Opcodes of the compiled program */
 	private final List<Byte> program = new ArrayList<>();
+	/** List of all symbols in the current and higher scopes */
 	private final List<Symbol> symbols = new ArrayList<>();
+	/** List of all goto symbols - places with goto statement */
 	private final List<Symbol> goto_symbols = new ArrayList<>();
+	/** List of all label symbols - places where program may
+		jump in the future */
 	private final List<Symbol> labels = new ArrayList<>();
+	/** Program loader - wraps current program to be able to
+		communicate with HW */
 	private final ILoader loader = new KernelLoader();
+	/** Path to the program output file */
 	private final String path;
+	/** ANTLR which parser source code */
+	private final pl0Parser parser;
+	/** Current program deepness */
 	private byte deep = 0;
+	/** Ratio between stack push and pop, protects stack */
 	private int push_pop_ratio = 0;
-	public static void main(String[] args) throws IOException{
-		pl0Lexer lexer = new pl0Lexer(CharStreams.fromFileName(args[0]));
-		CommonTokenStream tokens = new CommonTokenStream(lexer);
-		new ParseTreeWalker().walk(new I386(args[1]),
-			new pl0Parser(tokens).program());
+	/**
+	 * Main directly executable method
+	 * @param args 1. argument - output file name
+	 */
+	public static void main(String[] args){
+		try{
+			String in = "hilbert.pl0";
+			if(args.length>0){
+				in=args[0];
+			}else{
+				System.err.println("First argument (input source file) is not"+
+					"defined, using "+in);
+			}
+			String out = "out.bin";
+			if(args.length>1){
+				out=args[1];
+			}else{
+				System.err.println("Second argument (output binary file) is "+
+					"not defined, using "+out);
+			}
+			pl0Lexer lexer = new pl0Lexer(CharStreams.fromFileName(in));
+			CommonTokenStream tokens = new CommonTokenStream(lexer);
+			pl0Parser parser = new pl0Parser(tokens);
+			new ParseTreeWalker().walk(new I386(out,parser),parser.program());
+		}catch(Exception e){
+			error("Critical error: \""+e.getMessage()+"\"");
+		}
 	}
-	public I386(String path){
-		this.path = path;
+	public static void hint(String hint){
+		//System.out.println(hint); //uncomment in case of debugging
 	}
-	public void hint(String hint){
-		/*StackTraceElement[] l = Thread.currentThread().getStackTrace();
-		System.out.println(l[2].getFileName()+":"+l[2].getLineNumber());
-		System.out.println("\t"+hint);*/
-	}
-	public void error(String message){
+	public static void error(String message){
 		System.err.println(message);
 		System.exit(-1);
+	}
+	public I386(String path,pl0Parser parser){
+		this.path = path;
+		this.parser = parser;
 	}
 	public void add_program(int... values){
 		for(int val: values){
@@ -98,21 +152,11 @@ public class I386 extends pl0BaseListener{
 			(byte)((value>>>24)&0xff)
 		);
 	}
-	public void set_program_word(int value,int pos){
-		program.set(pos  ,(byte)(value&0xff));
-		program.set(pos+1,(byte)((value>>>8)&0xff));
-	}
 	public void set_program(int value,int pos){
 		program.set(pos  ,(byte)(value&0xff));
 		program.set(pos+1,(byte)((value>>>8)&0xff));
 		program.set(pos+2,(byte)((value>>>16)&0xff));
 		program.set(pos+3,(byte)((value>>>24)&0xff));
-	}
-	public void add_word(int word){
-		add_program(
-			(byte)(word&0xff),
-			(byte)((word>>>8)&0xff)
-		);
 	}
 	public void load(Symbol s){
 		if(s.deep == deep){
@@ -123,9 +167,9 @@ public class I386 extends pl0BaseListener{
 			add_program(0x66,0x67,0x36,0x8b,0x85);
 			add_int(-4*s.deep);
 		}
-		hint("sub eax,"+(4*(s.deep+1+s.SP)));
+		hint("sub eax,"+(4*(s.deep+1+s.pointer)));
 		add_program(0x66,0x2d);
-		add_int(4*(s.deep+1+s.SP));
+		add_int(4*(s.deep+1+s.pointer));
 		push_EAX();
 	}
 	public void print(String path){
@@ -170,24 +214,37 @@ public class I386 extends pl0BaseListener{
 		}
 		return to_find;
 	}
-	public boolean isADeclarationContext(Object o){
+	public boolean is_a_declaration_context(Object o){
 		return o instanceof pl0Parser.VarsContext ||
 			   o instanceof pl0Parser.ConstsContext ||
 			   o instanceof pl0Parser.ProcedureContext ||
 			   o instanceof pl0Parser.CallstmtContext;
 	}
-	public boolean isValid(ParserRuleContext idx,int type){
+	public boolean is_valid(ParserRuleContext idx,int type){
+		/* Map, where given symbol can be used, row index means
+			type of the operation, column index means type of the symbol */
+		final boolean[][] map = {
+			{false,false,true ,false,false},
+			{true ,false,false,false,false},
+			{false,true ,false,false,false},
+			{true ,false,false,false,false},
+			{false,true ,false,false,false},
+			{true ,false,true ,false,false},
+			{true ,false,false,false,false},
+			{true ,false,true ,false,false}
+		};
 		int rule = 0;
-		//TODO dependent
-		switch(idx.getRuleIndex()){
-			case  2: rule=0; break;
-			case  3: rule=1; break;
-			case  4: rule=2; break;
-			case  8: rule=3; break;
-			case  9: rule=4; break;
-			case 10: rule=5; break;
-			case 11: rule=6; break;
-			case 20: rule=7; break;
+		String[] names = parser.getRuleNames();
+		switch(names[idx.getRuleIndex()]){
+			case "consts":     rule=0; break;
+			case "vars":       rule=1; break;
+			case "procedure":  rule=2; break;
+			case "assignstmt": rule=3; break;
+			case "callstmt":   rule=4; break;
+			case "writestmt":  rule=5; break;
+			case "qstmt":      rule=6; break;
+			case "factor":     rule=7; break;
+			default:           return false;
 		}
 		return map[rule][type];
 	}
@@ -197,7 +254,7 @@ public class I386 extends pl0BaseListener{
 		push_pop_ratio+=4;
 		add_int(num);
 	}
-	public void clearVariables(List<Symbol> syms){
+	public void clear_variables(List<Symbol> syms){
 		for(int a=0; a<syms.size(); a++){
 			Symbol s = syms.get(a);
 			if(s.deep >= deep){
@@ -207,7 +264,7 @@ public class I386 extends pl0BaseListener{
 			}
 		}
 	}
-	public void switchText(String text){
+	public void switch_text(String text){
 		switch(text){
 			case "=":
 			case "#":
@@ -280,7 +337,7 @@ public class I386 extends pl0BaseListener{
 				add_int(0);
 		}
 	}
-	public int parseInt(String val){
+	public int parse_int(String val){
 		if(val.startsWith("0x")){
 			return Integer.parseInt(val.substring(2),16);
 		}else if(val.startsWith("0b")){
@@ -380,10 +437,10 @@ public class I386 extends pl0BaseListener{
 		String name = ctx.STRING().getSymbol().getText();
 		Symbol s = find_symbol(symbols,name);
 		if(s!=null){
-			if(isValid(ctx.getParent(),s.type)){
-				if(!isADeclarationContext(ctx.getParent())){
+			if(is_valid(ctx.getParent(),s.type)){
+				if(!is_a_declaration_context(ctx.getParent())){
 					if(s.type==TYPE_CONSTANT){
-						push_int(s.SP);	
+						push_int(s.pointer);	
 					}else{
 						load(s);
 					}
@@ -397,7 +454,7 @@ public class I386 extends pl0BaseListener{
 	}
 	@Override public void exitNumber(pl0Parser.NumberContext ctx){
 		if(!(ctx.getParent() instanceof pl0Parser.ConstsContext)){
-			int number = parseInt(ctx.NUMBER().getSymbol().getText());
+			int number = parse_int(ctx.NUMBER().getSymbol().getText());
 			push_int(number);
 		}
 	}
@@ -418,7 +475,7 @@ public class I386 extends pl0BaseListener{
 			List<pl0Parser.NumberContext> numcon = ctx.consts().number();
 			for(int a=0; a<ident.size(); a++){
 				symbols.add(new Symbol(ident.get(a).STRING().getSymbol(),
-					parseInt(numcon.get(a).NUMBER().getText()),
+					parse_int(numcon.get(a).NUMBER().getText()),
 					deep,TYPE_CONSTANT));
 			}
 		}
@@ -457,15 +514,15 @@ public class I386 extends pl0BaseListener{
 						error("ERR: goto "+gt.ident.getText()+
 							" - jump in different scope");
 					}
-					set_program(lab.SP-gt.SP-4,gt.SP);
+					set_program(lab.pointer-gt.pointer-4,gt.pointer);
 					continue outer;
 				}	
 			}
 			error("Label \""+gt.ident.getText()+"\" not found");
 		}
-		clearVariables(symbols);
-		clearVariables(goto_symbols);
-		clearVariables(labels);
+		clear_variables(symbols);
+		clear_variables(goto_symbols);
+		clear_variables(labels);
 		deep--;
 	}
 	@Override public void exitProcedure(pl0Parser.ProcedureContext ctx){
@@ -476,9 +533,9 @@ public class I386 extends pl0BaseListener{
 		String name = ctx.ident().STRING().getSymbol().getText();
 		Symbol s = find_symbol(symbols,name);
 		if(s!=null && s.type==TYPE_PROCEDURE){
-			hint("call "+s.SP);
+			hint("call "+s.pointer);
 			add_program(0x66,0xe8);	
-			add_int(s.SP-program.size()-4);
+			add_int(s.pointer-program.size()-4);
 		}else{
 			error("Procedure "+ctx.ident().STRING()+" not found");
 		}
@@ -492,11 +549,11 @@ public class I386 extends pl0BaseListener{
 	@Override public void exitCondition(pl0Parser.ConditionContext ctx){
 		if(ctx.ODD()!=null){
 			pop_EAX();
-			switchText("ODD");
+			switch_text("ODD");
 		}else{
 			pop_EBX();
 			pop_EAX();
-			switchText(((TerminalNode)ctx.getChild(1)).getSymbol().getText());
+			switch_text(((TerminalNode)ctx.getChild(1)).getSymbol().getText());
 		}	
 	}
 	@Override public void exitExpression(pl0Parser.ExpressionContext ctx){
@@ -504,7 +561,7 @@ public class I386 extends pl0BaseListener{
 		if(children==3){
 			pop_EBX();
 			pop_EAX();
-			switchText(((TerminalNode)ctx.getChild(1)).getSymbol().getText());
+			switch_text(((TerminalNode)ctx.getChild(1)).getSymbol().getText());
 			push_EAX();
 		}else if(children==2){
 			if(((TerminalNode)ctx.getChild(0))
@@ -521,7 +578,7 @@ public class I386 extends pl0BaseListener{
 		if(children==3){
 			pop_EBX();
 			pop_EAX();
-			switchText(((TerminalNode)ctx.getChild(1)).getSymbol().getText());
+			switch_text(((TerminalNode)ctx.getChild(1)).getSymbol().getText());
 			push_EAX();
 		}
 	}
