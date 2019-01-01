@@ -2,6 +2,9 @@
 Minimalistic compiler from extended PL/0 to unreal mode x86 instructions
 
 ## Prerequisities
+It is designed to be run on Linux OS. If you are interested in another
+OS, you will need to rewrite building script (`build.sh`) and
+execution script (`run.sh`) to make it work.
 ### Execution only
 * JRE 1.8+
 * qemu-system-i386 (highly recommended)
@@ -34,9 +37,19 @@ If you still want to run it on bare HW, generated file (for instance `out.bin`)
 is actually a OS image, which can be booted, so commands like `dd` can be
 usefull.
 
+# Compiler in action
+There are four testing **pl0** programs in the root folder of this project.
+If you compile and run these programs, you get this output:
 <p align="center">
 	<img src="pictures/hilbert.png" width="400px"/>
 	<img src="pictures/circle.png" width="400px"/>
 	<img src="pictures/bounce.png" width="400px"/>
 	<img src="pictures/fizzbuzz.png" width="400px"/>
 </p>
+
+First image (program `hilbert.pl0`) generates hilbert curve. It mainly aims to
+test recursion and nested procedures. The second image (program `circle.pl0`)
+generates concentric circles and tests loops. Third example
+(program `bounce.pl0`) draws bouncing object in 45 degrees. It tests correct
+compilation of conditions. The last example (program `fizzbuzz.pl0`)
+(look it up if do not know fizzbuzz program) tests mainly arithmetic.
