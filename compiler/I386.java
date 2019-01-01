@@ -128,110 +128,25 @@ public class I386 extends pl0BaseListener{
 		add_int(4*(s.deep+1+s.SP));
 		push_EAX();
 	}
-	public void store(Symbol s){
-		pop_EAX();
-		store_EAX(s);
-	}
-	public void store_EAX(Symbol s){
-		hint("mov dword [ss:"+s.SP+"],eax");
-		add_program(0x36,0x66,0xa3); //TODO word addr
-		add_word(s.SP); //TODO word addr
-	}
 	public void print(String path){
 		try{
-			Files.write(new File(path).toPath(),getArray());
+			Files.write(new File(path).toPath(),get_array());
 		}catch(IOException e){
 			e.printStackTrace();
 			error("Program cannot be saved!, details:");
 		}
 	}
-	public byte[] getArray(){
+	public byte[] get_array(){
 		byte[] arr = new byte[program.size()];
 		for(int a=0; a<arr.length; a++){
 			arr[a] = program.get(a);
 		}
 		return arr;
 	}
-	//GRAMMAR
-	@Override public void enterEveryRule(ParserRuleContext ctx){
-		hint("=>: "+ctx.getText());
-	}
-	@Override public void exitEveryRule(ParserRuleContext ctx){
-		hint("<=: "+ctx.getText());
-	}
-	@Override public void enterProgram(pl0Parser.ProgramContext ctx){
-		hint("... <loader> ...");
-		add_program(loader.loader());
-	}
-	@Override public void exitProgram(pl0Parser.ProgramContext ctx){
-		hint("jmp $");
-		add_program(0xeb,0xfe);
-		while((program.size()&0x1ff)!=0){
-			add_program(0x90);
-		}
-		set_program_word(511+(program.size()>>9),0x2d);
-		print(path);
-		hint("PUSH/POP: "+push_pop_ratio);
-		if(push_pop_ratio!=0){
-			error("Push/pop ratio is "+push_pop_ratio+", should be zero");
-		}
-	}
-	@Override public void enterWhilestmt(pl0Parser.WhilestmtContext ctx){
-		jump_backwards.addFirst(program.size());
-	}
-	@Override public void exitWhilestmt(pl0Parser.WhilestmtContext ctx){
-		int pc = jump_backwards.pop();
-		hint("jmp "+(pc-program.size()-4));
-		add_program(0x66,0xe9);
-		add_int(pc-program.size()-4);
-		pc = jump_requests.pop();
-		hint("WHILE: set start address to "+(program.size()-pc-4));
-		set_program(program.size()-pc-4,pc);
-	}
-	@Override public void enterElsebranch(pl0Parser.ElsebranchContext ctx){
-		int pc = jump_requests.pop();
-		if(ctx.ELSE()!=null){
-			hint("jmp near <block>");
-			add_program(0x66,0xe9);
-			jump_requests.addFirst(program.size());
-			add_int(0);
-		}
-		hint("IF: set start address to "+(program.size()-pc-4));
-		set_program(program.size()-pc-4,pc);
-	}
-	@Override public void exitElsebranch(pl0Parser.ElsebranchContext ctx){
-		if(ctx.ELSE()!=null){
-			int pc = jump_requests.pop();
-			hint("ELSE: set start address to "+(program.size()-pc-4));
-			set_program(program.size()-pc-4,pc);
-		}
-	}
-	public void dereferenceStack_EAX(){
+	public void dereference_stack_EAX(){
 		pop_EBX();
 		hint("mov eax,[ss:ebx]");
 		add_program(0x66,0x67,0x36,0x8b,0x03);
-	}
-	@Override public void exitWritestmt(pl0Parser.WritestmtContext ctx){
-		String name = ctx.ident().STRING().getSymbol().getText();
-		Symbol s = findSymbol(symbols,name);
-		if(s!=null){
-			if(s.type==TYPE_CONSTANT){
-				pop_EAX();
-			}else{
-				dereferenceStack_EAX();
-			}
-		}else{
-			error("Symbol \""+name+"\" does not exist");
-		}
-		hint("call write");
-		add_program(loader.write());
-	}
-	@Override public void exitQstmt(pl0Parser.QstmtContext ctx){
-		hint("call read");
-		add_program(loader.read());
-		pop_EBX();
-		hint("mov [ss:ebx],eax");
-		add_program(0x66,0x67,0x36,0x89,0x03);
 	}
 	private byte hex2byte(char c){
 		if(c<='9' && c>='0'){
@@ -244,19 +159,7 @@ public class I386 extends pl0BaseListener{
 			return (byte)0;
 		}
 	}
-	@Override public void exitExecstmt(pl0Parser.ExecstmtContext ctx){
-		String text = ctx.NUMBER().getSymbol().getText();
-		if(!text.startsWith("0x")){
-			error("Use execute with hexadecimal value, starting with '0x'");
-		}
-		for(int a=2; a<text.length(); a+=2){
-			add_program(
-				(hex2byte(text.charAt(a))<<4)+
-				hex2byte(text.charAt(a+1))
-			);
-		}
-	}
-	public Symbol findSymbol(List<Symbol> syms,String search){
+	public Symbol find_symbol(List<Symbol> syms,String search){
 		Symbol to_find = null;
 		for(int a=syms.size()-1; a>=0; a--){
 			Symbol sym = syms.get(a);
@@ -287,128 +190,12 @@ public class I386 extends pl0BaseListener{
 			case 20: rule=7; break;
 		}
 		return map[rule][type];
-		
-	}
-	@Override public void exitIdent(pl0Parser.IdentContext ctx){
-		String name = ctx.STRING().getSymbol().getText();
-		Symbol s = findSymbol(symbols,name);
-		if(s!=null){
-			if(isValid(ctx.getParent(),s.type)){
-				if(!isADeclarationContext(ctx.getParent())){
-					if(s.type==TYPE_CONSTANT){
-						push_int(s.SP);	
-					}else{
-						load(s);
-					}
-				}
-			}else{
-				error("Symbol \""+name+"\" cannot be used in this context");
-			}
-		}else{
-			error("Symbol \""+name+"\" does not exist");
-		}
-	}
-	@Override public void exitNumber(pl0Parser.NumberContext ctx){
-		if(!(ctx.getParent() instanceof pl0Parser.ConstsContext)){
-			int number = parseInt(ctx.NUMBER().getSymbol().getText());
-			push_int(number);
-		}
 	}
 	public void push_int(int num){
 		hint("push "+num);
 		add_program(0x66,0x67,0x68);
 		push_pop_ratio+=4;
 		add_int(num);
-	}
-	@Override public void enterBlock(pl0Parser.BlockContext ctx){
-		deep++;
-		List<pl0Parser.IdentContext> idc;
-		if(ctx.vars()==null){
-			idc = new ArrayList<pl0Parser.IdentContext>();
-		}else{
-			idc = ctx.vars().ident();
-		}
-		for(int a=0; a<idc.size(); a++){
-			symbols.add(new Symbol(idc.get(a).STRING()
-				.getSymbol(),a,deep,TYPE_VARIABLE));
-		}
-		if(ctx.consts()!=null){
-			List<pl0Parser.IdentContext> ident = ctx.consts().ident();
-			List<pl0Parser.NumberContext> numcon = ctx.consts().number();
-			for(int a=0; a<ident.size(); a++){
-				symbols.add(new Symbol(ident.get(a).STRING().getSymbol(),
-					parseInt(numcon.get(a).NUMBER().getText()),
-					deep,TYPE_CONSTANT));
-			}
-		}
-		int size = 4*idc.size();
-		//add_program(0x66,0x89,0xe0,0x9a,0x80,0x01,0xc0,0x07); //TODO remove
-		hint("enter "+size+","+deep);
-		add_program(0x66,0x67,0xc8,
-			(byte)(size&0xff),(byte)((size>>8)&0xff),deep);
-		//add_program(0x66,0x89,0xe0,0x9a,0x80,0x01,0xc0,0x07); //TODO remove
-		hint("jmp near <block>");
-		add_program(0x66,0xe9);
-		jump_requests.addFirst(program.size());
-		add_int(0);
-	}
-	@Override public void enterProcedure(pl0Parser.ProcedureContext ctx){
-		symbols.add(new Symbol(ctx.ident().STRING().getSymbol(),
-			program.size(),deep,TYPE_PROCEDURE));
-	}
-	@Override public void enterLabel(pl0Parser.LabelContext ctx){
-		labels.add(new Symbol(ctx.STRING().getSymbol(),
-			program.size(),deep,TYPE_LABEL));
-	}
-	@Override public void enterGotostmt(pl0Parser.GotostmtContext ctx){
-		hint("jmp <???>");
-		add_program(0x66,0xe9);
-		goto_symbols.add(new Symbol(ctx.STRING().getSymbol(),
-			program.size(),deep,TYPE_GOTO));
-		add_int(0);
-	}
-	@Override public void exitBlock(pl0Parser.BlockContext ctx){
-		hint("leave");
-		add_program(0x66,0x67,0xc9);
-		outer:
-		for(Symbol gt:goto_symbols){
-			for(Symbol lab:labels){
-				if(gt.ident.getText().equals(lab.ident.getText())){
-					if(gt.deep!=lab.deep){
-						error("ERR: goto "+gt.ident.getText()+
-							" - jump in different scope");
-					}
-					set_program(lab.SP-gt.SP-4,gt.SP);
-					continue outer;
-				}	
-			}
-			error("Label \""+gt.ident.getText()+"\" not found");
-		}
-		clearVariables(symbols);
-		clearVariables(goto_symbols);
-		clearVariables(labels);
-		deep--;
-	}
-	@Override public void exitProcedure(pl0Parser.ProcedureContext ctx){
-		hint("ret");	
-		add_program(0x66,0xc3);
-	}
-	@Override public void exitCallstmt(pl0Parser.CallstmtContext ctx){
-		String name = ctx.ident().STRING().getSymbol().getText();
-		Symbol s = findSymbol(symbols,name);
-		if(s!=null && s.type==TYPE_PROCEDURE){
-			hint("call "+s.SP);
-			add_program(0x66,0xe8);	
-			add_int(s.SP-program.size()-4);
-		}else{
-			error("Procedure "+ctx.ident().STRING()+" not found");
-		}
-	}
-	@Override public void exitAssignstmt(pl0Parser.AssignstmtContext ctx){
-		pop_EAX();
-		pop_EBX();
-		hint("mov [ss:ebx],eax");
-		add_program(0x66,0x67,0x36,0x89,0x03);
 	}
 	public void clearVariables(List<Symbol> syms){
 		for(int a=0; a<syms.size(); a++){
@@ -493,6 +280,215 @@ public class I386 extends pl0BaseListener{
 				add_int(0);
 		}
 	}
+	public int parseInt(String val){
+		if(val.startsWith("0x")){
+			return Integer.parseInt(val.substring(2),16);
+		}else if(val.startsWith("0b")){
+			return Integer.parseInt(val.substring(2),2);
+		}else if(val.equals("0")){
+			return 0;
+		}else if(val.charAt(0)=='0'){
+			return Integer.parseInt(val.substring(1),8);
+		}else{
+			return Integer.parseInt(val);
+		}
+	}
+	//GRAMMAR
+	@Override public void enterEveryRule(ParserRuleContext ctx){
+		hint("=>: "+ctx.getText());
+	}
+	@Override public void exitEveryRule(ParserRuleContext ctx){
+		hint("<=: "+ctx.getText());
+	}
+	@Override public void enterProgram(pl0Parser.ProgramContext ctx){
+		hint("... <loader> ...");
+		add_program(loader.loader());
+	}
+	@Override public void exitProgram(pl0Parser.ProgramContext ctx){
+		loader.finish(program);
+		print(path);
+		hint("PUSH/POP: "+push_pop_ratio);
+		if(push_pop_ratio!=0){
+			error("Push/pop ratio is "+push_pop_ratio+", should be zero");
+		}
+	}
+	@Override public void enterWhilestmt(pl0Parser.WhilestmtContext ctx){
+		jump_backwards.addFirst(program.size());
+	}
+	@Override public void exitWhilestmt(pl0Parser.WhilestmtContext ctx){
+		int pc = jump_backwards.pop();
+		hint("jmp "+(pc-program.size()-4));
+		add_program(0x66,0xe9);
+		add_int(pc-program.size()-4);
+		pc = jump_requests.pop();
+		hint("WHILE: set start address to "+(program.size()-pc-4));
+		set_program(program.size()-pc-4,pc);
+	}
+	@Override public void enterElsebranch(pl0Parser.ElsebranchContext ctx){
+		int pc = jump_requests.pop();
+		if(ctx.ELSE()!=null){
+			hint("jmp near <block>");
+			add_program(0x66,0xe9);
+			jump_requests.addFirst(program.size());
+			add_int(0);
+		}
+		hint("IF: set start address to "+(program.size()-pc-4));
+		set_program(program.size()-pc-4,pc);
+	}
+	@Override public void exitElsebranch(pl0Parser.ElsebranchContext ctx){
+		if(ctx.ELSE()!=null){
+			int pc = jump_requests.pop();
+			hint("ELSE: set start address to "+(program.size()-pc-4));
+			set_program(program.size()-pc-4,pc);
+		}
+	}
+	@Override public void exitWritestmt(pl0Parser.WritestmtContext ctx){
+		String name = ctx.ident().STRING().getSymbol().getText();
+		Symbol s = find_symbol(symbols,name);
+		if(s!=null){
+			if(s.type==TYPE_CONSTANT){
+				pop_EAX();
+			}else{
+				dereference_stack_EAX();
+			}
+		}else{
+			error("Symbol \""+name+"\" does not exist");
+		}
+		hint("call write");
+		add_program(loader.write());
+	}
+	@Override public void exitQstmt(pl0Parser.QstmtContext ctx){
+		hint("call read");
+		add_program(loader.read());
+		pop_EBX();
+		hint("mov [ss:ebx],eax");
+		add_program(0x66,0x67,0x36,0x89,0x03);
+	}
+	@Override public void exitExecstmt(pl0Parser.ExecstmtContext ctx){
+		String text = ctx.NUMBER().getSymbol().getText();
+		if(!text.startsWith("0x")){
+			error("Use execute with hexadecimal value, starting with '0x'");
+		}
+		for(int a=2; a<text.length(); a+=2){
+			add_program(
+				(hex2byte(text.charAt(a))<<4)+
+				hex2byte(text.charAt(a+1))
+			);
+		}
+	}
+	@Override public void exitIdent(pl0Parser.IdentContext ctx){
+		String name = ctx.STRING().getSymbol().getText();
+		Symbol s = find_symbol(symbols,name);
+		if(s!=null){
+			if(isValid(ctx.getParent(),s.type)){
+				if(!isADeclarationContext(ctx.getParent())){
+					if(s.type==TYPE_CONSTANT){
+						push_int(s.SP);	
+					}else{
+						load(s);
+					}
+				}
+			}else{
+				error("Symbol \""+name+"\" cannot be used in this context");
+			}
+		}else{
+			error("Symbol \""+name+"\" does not exist");
+		}
+	}
+	@Override public void exitNumber(pl0Parser.NumberContext ctx){
+		if(!(ctx.getParent() instanceof pl0Parser.ConstsContext)){
+			int number = parseInt(ctx.NUMBER().getSymbol().getText());
+			push_int(number);
+		}
+	}
+	@Override public void enterBlock(pl0Parser.BlockContext ctx){
+		deep++;
+		List<pl0Parser.IdentContext> idc;
+		if(ctx.vars()==null){
+			idc = new ArrayList<pl0Parser.IdentContext>();
+		}else{
+			idc = ctx.vars().ident();
+		}
+		for(int a=0; a<idc.size(); a++){
+			symbols.add(new Symbol(idc.get(a).STRING()
+				.getSymbol(),a,deep,TYPE_VARIABLE));
+		}
+		if(ctx.consts()!=null){
+			List<pl0Parser.IdentContext> ident = ctx.consts().ident();
+			List<pl0Parser.NumberContext> numcon = ctx.consts().number();
+			for(int a=0; a<ident.size(); a++){
+				symbols.add(new Symbol(ident.get(a).STRING().getSymbol(),
+					parseInt(numcon.get(a).NUMBER().getText()),
+					deep,TYPE_CONSTANT));
+			}
+		}
+		int size = 4*idc.size();
+		hint("enter "+size+","+deep);
+		add_program(0x66,0x67,0xc8,
+			(byte)(size&0xff),(byte)((size>>8)&0xff),deep);
+		hint("jmp near <block>");
+		add_program(0x66,0xe9);
+		jump_requests.addFirst(program.size());
+		add_int(0);
+	}
+	@Override public void enterProcedure(pl0Parser.ProcedureContext ctx){
+		symbols.add(new Symbol(ctx.ident().STRING().getSymbol(),
+			program.size(),deep,TYPE_PROCEDURE));
+	}
+	@Override public void enterLabel(pl0Parser.LabelContext ctx){
+		labels.add(new Symbol(ctx.STRING().getSymbol(),
+			program.size(),deep,TYPE_LABEL));
+	}
+	@Override public void enterGotostmt(pl0Parser.GotostmtContext ctx){
+		hint("jmp <???>");
+		add_program(0x66,0xe9);
+		goto_symbols.add(new Symbol(ctx.STRING().getSymbol(),
+			program.size(),deep,TYPE_GOTO));
+		add_int(0);
+	}
+	@Override public void exitBlock(pl0Parser.BlockContext ctx){
+		hint("leave");
+		add_program(0x66,0x67,0xc9);
+		outer:
+		for(Symbol gt:goto_symbols){
+			for(Symbol lab:labels){
+				if(gt.ident.getText().equals(lab.ident.getText())){
+					if(gt.deep!=lab.deep){
+						error("ERR: goto "+gt.ident.getText()+
+							" - jump in different scope");
+					}
+					set_program(lab.SP-gt.SP-4,gt.SP);
+					continue outer;
+				}	
+			}
+			error("Label \""+gt.ident.getText()+"\" not found");
+		}
+		clearVariables(symbols);
+		clearVariables(goto_symbols);
+		clearVariables(labels);
+		deep--;
+	}
+	@Override public void exitProcedure(pl0Parser.ProcedureContext ctx){
+		hint("ret");	
+		add_program(0x66,0xc3);
+	}
+	@Override public void exitCallstmt(pl0Parser.CallstmtContext ctx){
+		String name = ctx.ident().STRING().getSymbol().getText();
+		Symbol s = find_symbol(symbols,name);
+		if(s!=null && s.type==TYPE_PROCEDURE){
+			hint("call "+s.SP);
+			add_program(0x66,0xe8);	
+			add_int(s.SP-program.size()-4);
+		}else{
+			error("Procedure "+ctx.ident().STRING()+" not found");
+		}
+	}
+	@Override public void exitAssignstmt(pl0Parser.AssignstmtContext ctx){
+		pop_EAX();
+		pop_EBX();
+		hint("mov [ss:ebx],eax");
+		add_program(0x66,0x67,0x36,0x89,0x03);
+	}
 	@Override public void exitCondition(pl0Parser.ConditionContext ctx){
 		if(ctx.ODD()!=null){
 			pop_EAX();
@@ -511,7 +507,8 @@ public class I386 extends pl0BaseListener{
 			switchText(((TerminalNode)ctx.getChild(1)).getSymbol().getText());
 			push_EAX();
 		}else if(children==2){
-			if(((TerminalNode)ctx.getChild(0)).getSymbol().getText().equals("-")){
+			if(((TerminalNode)ctx.getChild(0))
+					.getSymbol().getText().equals("-")){
 				pop_EAX();
 				hint("neg eax");
 				add_program(0x66,0xf7,0xd8);
@@ -532,9 +529,9 @@ public class I386 extends pl0BaseListener{
 		if(ctx.getChild(0) instanceof pl0Parser.IdentContext){
 			pl0Parser.IdentContext idx=(pl0Parser.IdentContext)ctx.getChild(0);
 			String name = idx.STRING().getSymbol().getText();
-			Symbol s = findSymbol(symbols,name);
+			Symbol s = find_symbol(symbols,name);
 			if(s!=null && s.type==TYPE_VARIABLE){
-				dereferenceStack_EAX();	
+				dereference_stack_EAX();	
 				push_EAX();
 			}
 		}
@@ -544,19 +541,6 @@ public class I386 extends pl0BaseListener{
 			int pc = jump_requests.pop();
 			hint("MAIN: set start address to "+(program.size()-pc-4));
 			set_program(program.size()-pc-4,pc);
-		}
-	}
-	public int parseInt(String val){
-		if(val.startsWith("0x")){
-			return Integer.parseInt(val.substring(2),16);
-		}else if(val.startsWith("0b")){
-			return Integer.parseInt(val.substring(2),2);
-		}else if(val.equals("0")){
-			return 0;
-		}else if(val.charAt(0)=='0'){
-			return Integer.parseInt(val.substring(1),8);
-		}else{
-			return Integer.parseInt(val);
 		}
 	}
 }
