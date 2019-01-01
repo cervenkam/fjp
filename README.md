@@ -34,4 +34,7 @@ If you still want to run it on bare HW, generated file (for instance `out.bin`)
 is actually a OS image, which can be booted, so commands like `dd` can be
 usefull.
 
-![](pictures/hilbert.png)
+![](pictures/hilbert.png =400x)
+![](pictures/circle.png =400x)
+![](pictures/bounce.png =400x)
+![](pictures/fizzbuzz.png =400x)
