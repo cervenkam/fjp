@@ -360,6 +360,7 @@ public class I386 extends pl0BaseListener{
 	 * @param text Operation (for example =,#,+,- etc.)
 	 */
 	public void switch_text(String text){
+		text=text.toUpperCase();
 		switch(text){
 			case "=":
 			case "#":
@@ -415,9 +416,10 @@ public class I386 extends pl0BaseListener{
 				break;
 			case "ODD":
 				hint("test eax,0x1");
-				add_program(0x66,0x85,0xd8);
-				hint("jnz <rel_addr>");
-				add_program(0x66,0x0f,0x85);
+				add_program(0x66,0xa9);
+				add_int(1);
+				hint("jz <rel_addr>");
+				add_program(0x66,0x0f,0x84);
 				break;
 		}
 		switch(text){
