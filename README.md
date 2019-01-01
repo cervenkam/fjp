@@ -1,5 +1,5 @@
 # Semestral work KIV/FJP
-Minimalistic compiler from extended PL/0 to unreal mode x86 instructions
+Minimalistic compiler from extended PL/0 to unreal mode x86 instructions.
 
 ## Prerequisities
 It is designed to be run on Linux OS. If you are interested in another
