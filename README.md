@@ -61,8 +61,8 @@ of the source code.
 ### Special thanks
 OS kernel has been inspired by previously used kernel created by me and
 these two guys:
-* Petr &Scaron;techm&uuml;ller
-* Anton&iacute;n Vrba
+* [Petr &Scaron;techm&uuml;ller](https://github.com/stechy1)
+* [Anton&iacute;n Vrba](https://github.com/Vrbikk)
 
 If you are interested more in assembly, look at out previous project at
 [Fail-OS](https://github.com/cervenkam/os/).
