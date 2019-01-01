@@ -1,7 +1,7 @@
 all: compiled compiled/main.bin
 compiled/main.bin: compiled/loader.bin compiled/program.bin
-	file=../prekladac/KernelLoader.java; \
-	echo 'package prekladac;' > $$file; \
+	file=../compiler/KernelLoader.java; \
+	echo 'package compiler;' > $$file; \
 	echo 'public class KernelLoader implements ILoader{' >> $$file; \
 	echo '\t@Override public final byte[] loader(){' >> $$file; \
 	echo '\t\treturn new byte[]{' >> $$file; \

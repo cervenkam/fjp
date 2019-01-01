@@ -3,8 +3,8 @@ Minimalistic compiler from extended PL/0 to unreal mode x86 instructions.
 
 ## Prerequisities
 It is designed to be run on Linux OS. If you are interested in another
-OS, you will need to rewrite building script (`build.sh`) and
-execution script (`run.sh`) to make it work.
+OS, you will need to rewrite at least compilation script (`compile.sh`)
+and execution script (`run.sh`) to make it work.
 ### Execution only
 * JRE 1.8+
 * qemu-system-i386 (highly recommended)
@@ -14,11 +14,11 @@ execution script (`run.sh`) to make it work.
 * objdump
 
 # Instalation
-For compilation use **build.sh**, it has two parameters, first is the
+For compilation use **compile.sh**, it has two parameters, first is the
 filename/path to the **pl0** source, second is output file (executable),
 for example:
 
-`./build.sh hilbert.pl0 out.bin`
+`./compile.sh hilbert.pl0 out.bin`
 
 This command creates the output program **out.bin**, which can be executed
 with **run.sh** script:
@@ -37,6 +37,13 @@ If you still want to run it on bare HW, generated file (for instance `out.bin`)
 is actually a OS image, which can be booted, so commands like `dd` can be
 usefull.
 
+# Author
+* Martin &Ccaron;ervenka
+## Special thanks
+OS kernel has been inspired by previously used kernel created by me and
+these two guys:
+* Petr &Scaron;techm&uuml;ller
+* Anton&iacute;n Vrba
 # Compiler in action
 There are four testing **pl0** programs in the root folder of this project.
 If you compile and run these programs, you get this output:
