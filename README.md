@@ -63,6 +63,7 @@ OS kernel has been inspired by previously used kernel created by me and
 these two guys:
 * Petr &Scaron;techm&uuml;ller
 * Anton&iacute;n Vrba
+
 If you are interested more in assembly, look at out previous project at
 [Fail-OS](https://github.com/cervenkam/os/).
 ## Compiler in action
