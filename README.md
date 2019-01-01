@@ -74,12 +74,15 @@ If you compile and run these programs, you get this output:
 	<img src="pictures/circle.png" width="400px"/>
 	<img src="pictures/bounce.png" width="400px"/>
 	<img src="pictures/fizzbuzz.png" width="400px"/>
+	<img src="pictures/square.png" width="400px"/>
 </p>
 
-First image (program `hilbert.pl0`) generates hilbert curve. It mainly aims to
-test recursion and nested procedures. The second image (program `circle.pl0`)
-generates concentric circles and tests loops. Third example
-(program `bounce.pl0`) draws bouncing object in 45 degrees. It tests correct
-compilation of conditions. The last example (program `fizzbuzz.pl0`)
-(look it up if do not know fizzbuzz program) tests mainly arithmetic.
+First image (program `hilbert.pl0`) shows hilbert curve. The program mainly
+aims to test compilation of recursion and nested procedures. The second image
+(program `circle.pl0`) shows generated concentric circles and tests loops.
+Third example (program `bounce.pl0`) draws bouncing object in 45 degrees.
+It tests correct compilation of conditions. The forth example
+(program `fizzbuzz.pl0`) (look it up if do not know fizzbuzz program) tests
+mainly arithmetic, and the last one tests user input (user enters number - in
+binary - and it prints square of given input).
 

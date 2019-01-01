@@ -1,0 +1,11 @@
+//variable which will be squared
+var x;
+//infinite loop
+while 0=0 do begin
+	//read variable
+	read x;
+	//square variable
+	x:=x*x;
+	//write variable
+	write x
+end.
