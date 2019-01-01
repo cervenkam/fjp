@@ -13,12 +13,12 @@ and execution script (`run.sh`) to make it work.
 * nasm
 * objdump
 
-# Fast execution
+## Fast execution
 To test it really fast, you can use this fragment of bash code:
 
 `git clone https://github.com/cervenkam/fjp.git && cd fjp &&chmod +x *.sh
 && ./compile.sh hilbert.pl0 out.bin && ./run.sh out.bin`
-# Execution in nutshell
+## Execution in nutshell
 For compilation use **compile.sh**, it has two parameters, first is the
 filename/path to the **pl0** source, second is output file (executable),
 for example:
@@ -42,14 +42,14 @@ If you still want to run it on bare HW, generated file (for instance `out.bin`)
 is actually a OS image, which can be booted, so commands like `dd` can be
 usefull.
 
-# Author
+## Author
 * Martin &Ccaron;ervenka
-## Special thanks
+### Special thanks
 OS kernel has been inspired by previously used kernel created by me and
 these two guys:
 * Petr &Scaron;techm&uuml;ller
 * Anton&iacute;n Vrba
-# Compiler in action
+## Compiler in action
 There are four testing **pl0** programs in the root folder of this project.
 If you compile and run these programs, you get this output:
 <p align="center">
