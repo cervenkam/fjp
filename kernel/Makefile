@@ -1,5 +1,5 @@
 all: compiled compiled/main.bin
-compiled/main.bin: compiled/loader.bin compiled/program.bin
+compiled/main.bin: compiled/loader.bin
 	file=../compiler/KernelLoader.java; \
 	echo 'package compiler;' > $$file; \
 	echo 'import java.util.List;' >> $$file; \

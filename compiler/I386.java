@@ -82,7 +82,8 @@ public class I386 extends pl0BaseListener{
 	private int push_pop_ratio = 0;
 	/**
 	 * Main directly executable method
-	 * @param args 1. argument - output file name
+	 * @param args 1. argument - source code file name (default - hilbert.pl0),
+		2. argument - output file name (default - out.bin)
 	 */
 	public static void main(String[] args){
 		try{
@@ -108,43 +109,78 @@ public class I386 extends pl0BaseListener{
 			error("Critical error: \""+e.getMessage()+"\"");
 		}
 	}
+	/**
+	 * Prints hint for every opcode insertion
+	 * @param hint Hint for given opcode
+	 */
 	public static void hint(String hint){
 		//System.out.println(hint); //uncomment in case of debugging
 	}
+	/**
+	 * Prints error message and quits compilation
+	 * @param message Error message
+	 */
 	public static void error(String message){
 		System.err.println(message);
 		System.exit(-1);
 	}
+	/**
+	 * Compiler c'tor 
+	 * @param path Path to the output file (binary)
+	 * @param parser ANTLR parser which parses input
+	 */
 	public I386(String path,pl0Parser parser){
 		this.path = path;
 		this.parser = parser;
 	}
+	/**
+	 * Adds given values (bytes) to the program
+	 * @param values Bytes to append to the program
+	 */
 	public void add_program(int... values){
 		for(int val: values){
 			program.add((byte)val);
 		}
 	}
-	public void push_EAX(){
-		hint("push eax");
-		add_program(0x66,0x67,0x50);
-		push_pop_ratio+=4;
-	}
-	public void pop_EBX(){
-		hint("pop ebx");
-		add_program(0x66,0x67,0x5b);
-		push_pop_ratio-=4;
-	}
-	public void pop_EAX(){
-		hint("pop eax");
-		add_program(0x66,0x67,0x58);
-		push_pop_ratio-=4;
-	}
+	/**
+	 * Adds given values (bytes) to the program
+	 * @param values Bytes to append to the program
+	 */
 	public void add_program(byte... values){
 		for(byte val: values){
 			program.add(val);
 		}
 	}
+	/**
+	 * Pushes content of the EAX register onto the stack
+	 */
+	public void push_EAX(){
+		hint("push eax");
+		add_program(0x66,0x67,0x50);
+		push_pop_ratio+=4;
+	}
+	/**
+	 * Pops top of the stack into EBX register
+	 */
+	public void pop_EBX(){
+		hint("pop ebx");
+		add_program(0x66,0x67,0x5b);
+		push_pop_ratio-=4;
+	}
+	/**
+	 * Pops top of the stack into EAX register
+	 */
+	public void pop_EAX(){
+		hint("pop eax");
+		add_program(0x66,0x67,0x58);
+		push_pop_ratio-=4;
+	}
+	/**
+	 * Adds one integer value (4B) at the end of the program
+	 * @param value Value, which will be apended to the program
+	 */
 	public void add_int(int value){
+		//little endian
 		add_program(
 			(byte)(value&0xff),
 			(byte)((value>>>8)&0xff),
@@ -152,12 +188,22 @@ public class I386 extends pl0BaseListener{
 			(byte)((value>>>24)&0xff)
 		);
 	}
+	/**
+	 * Sets one integer value (4B) at the specified position in the program
+	 * @param value Value, which will be set in the program
+	 * @param pos Program position, where it will be set
+	 */
 	public void set_program(int value,int pos){
+		//little endian
 		program.set(pos  ,(byte)(value&0xff));
 		program.set(pos+1,(byte)((value>>>8)&0xff));
 		program.set(pos+2,(byte)((value>>>16)&0xff));
 		program.set(pos+3,(byte)((value>>>24)&0xff));
 	}
+	/**
+	 * Loads given symbol from its position and pushes its value onto the stack
+	 * @param s Symbol to load
+	 */
 	public void load(Symbol s){
 		if(s.deep == deep){
 			hint("mov eax,ebp");
@@ -172,14 +218,22 @@ public class I386 extends pl0BaseListener{
 		add_int(4*(s.deep+1+s.pointer));
 		push_EAX();
 	}
+	/**
+	 * Prints program into the given file
+	 * @param path Output file
+	 */
 	public void print(String path){
 		try{
 			Files.write(new File(path).toPath(),get_array());
 		}catch(IOException e){
 			e.printStackTrace();
-			error("Program cannot be saved!, details:");
+			error("Program cannot be saved!");
 		}
 	}
+	/**
+	 * Method returns array of program bytes
+	 * @return Program bytes
+	 */
 	public byte[] get_array(){
 		byte[] arr = new byte[program.size()];
 		for(int a=0; a<arr.length; a++){
@@ -187,11 +241,20 @@ public class I386 extends pl0BaseListener{
 		}
 		return arr;
 	}
+	/**
+	 * Dereference top of the stack and dereferenced value moves
+	 *	into EAX register
+	 */
 	public void dereference_stack_EAX(){
 		pop_EBX();
 		hint("mov eax,[ss:ebx]");
 		add_program(0x66,0x67,0x36,0x8b,0x03);
 	}
+	/**
+	 * Converts one hexadecimal ASCII character [0-9a-fA-F] to byte value
+	 * @param c Character in ASCII code
+	 * @return Its value
+	 */
 	private byte hex2byte(char c){
 		if(c<='9' && c>='0'){
 			return (byte)(c-'0');
@@ -203,6 +266,12 @@ public class I386 extends pl0BaseListener{
 			return (byte)0;
 		}
 	}
+	/**
+	 * Finds given symbol in the specified list
+	 * @param syms Searched list of symbols
+	 * @param search Symbol name to find
+	 * @return Symbol with given name / null
+	 */
 	public Symbol find_symbol(List<Symbol> syms,String search){
 		Symbol to_find = null;
 		for(int a=syms.size()-1; a>=0; a--){
@@ -214,12 +283,26 @@ public class I386 extends pl0BaseListener{
 		}
 		return to_find;
 	}
+	/**
+	 * Returns whether given object (non-terminal symbol) is a
+	 *	declaration or not, if yes it can be loaded
+	 * @param o Testing object
+	 * @return Is given non-terminal symbol a declaration?
+	 */
 	public boolean is_a_declaration_context(Object o){
 		return o instanceof pl0Parser.VarsContext ||
 			   o instanceof pl0Parser.ConstsContext ||
 			   o instanceof pl0Parser.ProcedureContext ||
 			   o instanceof pl0Parser.CallstmtContext;
 	}
+	/**
+	 * Returns whether given non-terminal symbol can be used in given context
+	 * For instance it is not possible to assign into a constant, but it is
+	 * possible to assing into a variable
+	 * @param idx Context of the symbol (call/read/write etc.)
+	 * @param type Type of the identifier (variable/procedure etc.)
+	 * @return Is the operation allowed?
+	 */
 	public boolean is_valid(ParserRuleContext idx,int type){
 		/* Map, where given symbol can be used, row index means
 			type of the operation, column index means type of the symbol */
@@ -233,7 +316,7 @@ public class I386 extends pl0BaseListener{
 			{true ,false,false,false,false},
 			{true ,false,true ,false,false}
 		};
-		int rule = 0;
+		int rule= 0;
 		String[] names = parser.getRuleNames();
 		switch(names[idx.getRuleIndex()]){
 			case "consts":     rule=0; break;
@@ -248,12 +331,20 @@ public class I386 extends pl0BaseListener{
 		}
 		return map[rule][type];
 	}
+	/**
+	 * Pushes immediate value onto the stack
+	 * @param num Number pushed onto the top of the stack
+	 */
 	public void push_int(int num){
 		hint("push "+num);
 		add_program(0x66,0x67,0x68);
 		push_pop_ratio+=4;
 		add_int(num);
 	}
+	/**
+	 * Clears all current scope variables when program exits this scope
+	 * @param syms List of symbols
+	 */
 	public void clear_variables(List<Symbol> syms){
 		for(int a=0; a<syms.size(); a++){
 			Symbol s = syms.get(a);
@@ -264,6 +355,10 @@ public class I386 extends pl0BaseListener{
 			}
 		}
 	}
+	/**
+	 * Makes an operation defined by the parameter
+	 * @param text Operation (for example =,#,+,- etc.)
+	 */
 	public void switch_text(String text){
 		switch(text){
 			case "=":
@@ -337,6 +432,12 @@ public class I386 extends pl0BaseListener{
 				add_int(0);
 		}
 	}
+	/**
+	 * Parses integer value, determines its base by its prefix.
+	 * Allowed bases are: hexadecimal (prefix 0x), binary (prefix 0b),
+	 * octal (prefix 0) and decimal (without prefix)
+	 * @param val String representation of the number
+	 */
 	public int parse_int(String val){
 		if(val.startsWith("0x")){
 			return Integer.parseInt(val.substring(2),16);
@@ -350,17 +451,32 @@ public class I386 extends pl0BaseListener{
 			return Integer.parseInt(val);
 		}
 	}
-	//GRAMMAR
+	/**
+	 * Executes when parser enters every rule	
+	 * @param ctx Current context
+	 */
 	@Override public void enterEveryRule(ParserRuleContext ctx){
 		hint("=>: "+ctx.getText());
 	}
+	/**
+	 * Executes when parser exits every	rule
+	 * @param ctx Current context
+	 */
 	@Override public void exitEveryRule(ParserRuleContext ctx){
 		hint("<=: "+ctx.getText());
 	}
+	/**
+	 * Executes when parser enters program	
+	 * @param ctx Current context
+	 */
 	@Override public void enterProgram(pl0Parser.ProgramContext ctx){
 		hint("... <loader> ...");
 		add_program(loader.loader());
 	}
+	/**
+	 * Executes when parser exits program	
+	 * @param ctx Current context
+	 */
 	@Override public void exitProgram(pl0Parser.ProgramContext ctx){
 		loader.finish(program);
 		print(path);
@@ -369,9 +485,17 @@ public class I386 extends pl0BaseListener{
 			error("Push/pop ratio is "+push_pop_ratio+", should be zero");
 		}
 	}
+	/**
+	 * Executes when parser enters while statement	
+	 * @param ctx Current context
+	 */
 	@Override public void enterWhilestmt(pl0Parser.WhilestmtContext ctx){
 		jump_backwards.addFirst(program.size());
 	}
+	/**
+	 * Executes when parser exits while statement	
+	 * @param ctx Current context
+	 */
 	@Override public void exitWhilestmt(pl0Parser.WhilestmtContext ctx){
 		int pc = jump_backwards.pop();
 		hint("jmp "+(pc-program.size()-4));
@@ -381,6 +505,10 @@ public class I386 extends pl0BaseListener{
 		hint("WHILE: set start address to "+(program.size()-pc-4));
 		set_program(program.size()-pc-4,pc);
 	}
+	/**
+	 * Executes when parser enters else branch
+	 * @param ctx Current context
+	 */
 	@Override public void enterElsebranch(pl0Parser.ElsebranchContext ctx){
 		int pc = jump_requests.pop();
 		if(ctx.ELSE()!=null){
@@ -392,6 +520,10 @@ public class I386 extends pl0BaseListener{
 		hint("IF: set start address to "+(program.size()-pc-4));
 		set_program(program.size()-pc-4,pc);
 	}
+	/**
+	 * Executes when parser exits else branch	
+	 * @param ctx Current context
+	 */
 	@Override public void exitElsebranch(pl0Parser.ElsebranchContext ctx){
 		if(ctx.ELSE()!=null){
 			int pc = jump_requests.pop();
@@ -399,6 +531,10 @@ public class I386 extends pl0BaseListener{
 			set_program(program.size()-pc-4,pc);
 		}
 	}
+	/**
+	 * Executes when parser exits write statement	
+	 * @param ctx Current context
+	 */
 	@Override public void exitWritestmt(pl0Parser.WritestmtContext ctx){
 		String name = ctx.ident().STRING().getSymbol().getText();
 		Symbol s = find_symbol(symbols,name);
@@ -414,6 +550,10 @@ public class I386 extends pl0BaseListener{
 		hint("call write");
 		add_program(loader.write());
 	}
+	/**
+	 * Executes when parser exits read statement	
+	 * @param ctx Current context
+	 */
 	@Override public void exitQstmt(pl0Parser.QstmtContext ctx){
 		hint("call read");
 		add_program(loader.read());
@@ -421,6 +561,10 @@ public class I386 extends pl0BaseListener{
 		hint("mov [ss:ebx],eax");
 		add_program(0x66,0x67,0x36,0x89,0x03);
 	}
+	/**
+	 * Executes when parser exits execute statement	
+	 * @param ctx Current context
+	 */
 	@Override public void exitExecstmt(pl0Parser.ExecstmtContext ctx){
 		String text = ctx.NUMBER().getSymbol().getText();
 		if(!text.startsWith("0x")){
@@ -433,6 +577,10 @@ public class I386 extends pl0BaseListener{
 			);
 		}
 	}
+	/**
+	 * Executes when parser exits identifier	
+	 * @param ctx Current context
+	 */
 	@Override public void exitIdent(pl0Parser.IdentContext ctx){
 		String name = ctx.STRING().getSymbol().getText();
 		Symbol s = find_symbol(symbols,name);
@@ -452,12 +600,20 @@ public class I386 extends pl0BaseListener{
 			error("Symbol \""+name+"\" does not exist");
 		}
 	}
+	/**
+	 * Executes when parser exits number	
+	 * @param ctx Current context
+	 */
 	@Override public void exitNumber(pl0Parser.NumberContext ctx){
 		if(!(ctx.getParent() instanceof pl0Parser.ConstsContext)){
 			int number = parse_int(ctx.NUMBER().getSymbol().getText());
 			push_int(number);
 		}
 	}
+	/**
+	 * Executes when parser enters block	
+	 * @param ctx Current context
+	 */
 	@Override public void enterBlock(pl0Parser.BlockContext ctx){
 		deep++;
 		List<pl0Parser.IdentContext> idc;
@@ -488,14 +644,26 @@ public class I386 extends pl0BaseListener{
 		jump_requests.addFirst(program.size());
 		add_int(0);
 	}
+	/**
+	 * Executes when parser enters procedure	
+	 * @param ctx Current context
+	 */
 	@Override public void enterProcedure(pl0Parser.ProcedureContext ctx){
 		symbols.add(new Symbol(ctx.ident().STRING().getSymbol(),
 			program.size(),deep,TYPE_PROCEDURE));
 	}
+	/**
+	 * Executes when parser enters label	
+	 * @param ctx Current context
+	 */
 	@Override public void enterLabel(pl0Parser.LabelContext ctx){
 		labels.add(new Symbol(ctx.STRING().getSymbol(),
 			program.size(),deep,TYPE_LABEL));
 	}
+	/**
+	 * Executes when parser enters goto statement	
+	 * @param ctx Current context
+	 */
 	@Override public void enterGotostmt(pl0Parser.GotostmtContext ctx){
 		hint("jmp <???>");
 		add_program(0x66,0xe9);
@@ -503,6 +671,10 @@ public class I386 extends pl0BaseListener{
 			program.size(),deep,TYPE_GOTO));
 		add_int(0);
 	}
+	/**
+	 * Executes when parser exits block	
+	 * @param ctx Current context
+	 */
 	@Override public void exitBlock(pl0Parser.BlockContext ctx){
 		hint("leave");
 		add_program(0x66,0x67,0xc9);
@@ -525,10 +697,18 @@ public class I386 extends pl0BaseListener{
 		clear_variables(labels);
 		deep--;
 	}
+	/**
+	 * Executes when parser exits procedure	
+	 * @param ctx Current context
+	 */
 	@Override public void exitProcedure(pl0Parser.ProcedureContext ctx){
 		hint("ret");	
 		add_program(0x66,0xc3);
 	}
+	/**
+	 * Executes when parser exits call statement	
+	 * @param ctx Current context
+	 */
 	@Override public void exitCallstmt(pl0Parser.CallstmtContext ctx){
 		String name = ctx.ident().STRING().getSymbol().getText();
 		Symbol s = find_symbol(symbols,name);
@@ -540,12 +720,20 @@ public class I386 extends pl0BaseListener{
 			error("Procedure "+ctx.ident().STRING()+" not found");
 		}
 	}
+	/**
+	 * Executes when parser exits assignment	
+	 * @param ctx Current context
+	 */
 	@Override public void exitAssignstmt(pl0Parser.AssignstmtContext ctx){
 		pop_EAX();
 		pop_EBX();
 		hint("mov [ss:ebx],eax");
 		add_program(0x66,0x67,0x36,0x89,0x03);
 	}
+	/**
+	 * Executes when parser exits condition	
+	 * @param ctx Current context
+	 */
 	@Override public void exitCondition(pl0Parser.ConditionContext ctx){
 		if(ctx.ODD()!=null){
 			pop_EAX();
@@ -556,6 +744,10 @@ public class I386 extends pl0BaseListener{
 			switch_text(((TerminalNode)ctx.getChild(1)).getSymbol().getText());
 		}	
 	}
+	/**
+	 * Executes when parser exits expression	
+	 * @param ctx Current context
+	 */
 	@Override public void exitExpression(pl0Parser.ExpressionContext ctx){
 		int children = ctx.getChildCount();
 		if(children==3){
@@ -573,6 +765,10 @@ public class I386 extends pl0BaseListener{
 			}
 		}
 	}
+	/**
+	 * Executes when parser exits term	
+	 * @param ctx Current context
+	 */
 	@Override public void exitTerm(pl0Parser.TermContext ctx){
 		int children = ctx.getChildCount();
 		if(children==3){
@@ -582,6 +778,10 @@ public class I386 extends pl0BaseListener{
 			push_EAX();
 		}
 	}
+	/**
+	 * Executes when parser exits factor	
+	 * @param ctx Current context
+	 */
 	@Override public void exitFactor(pl0Parser.FactorContext ctx){
 		if(ctx.getChild(0) instanceof pl0Parser.IdentContext){
 			pl0Parser.IdentContext idx=(pl0Parser.IdentContext)ctx.getChild(0);
@@ -593,6 +793,10 @@ public class I386 extends pl0BaseListener{
 			}
 		}
 	}
+	/**
+	 * Executes when parser enters statement	
+	 * @param ctx Current context
+	 */
 	@Override public void enterStatement(pl0Parser.StatementContext ctx){
 		if(ctx.getParent() instanceof pl0Parser.BlockContext){	
 			int pc = jump_requests.pop();
