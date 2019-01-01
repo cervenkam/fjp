@@ -13,7 +13,13 @@ and execution script (`run.sh`) to make it work.
 * nasm
 * objdump
 
-# Instalation
+# Fast execution
+To test it really fast, you can use this fragment of bash code:
+`git clone https://github.com/cervenkam/fjp.git
+cd fjp
+chmod +x *.sh
+./compile.sh hilbert.pl0 out.bin && ./run.sh out.bin`
+# Execution in nutshell
 For compilation use **compile.sh**, it has two parameters, first is the
 filename/path to the **pl0** source, second is output file (executable),
 for example:
