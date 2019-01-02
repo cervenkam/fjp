@@ -70,9 +70,9 @@ If you are interested more in assembly, look at out previous project at
 There are four testing **pl0** programs in the root folder of this project.
 If you compile and run these programs, you get this output:
 <p align="center">
-	<img src="pictures/hilbert.png" width="400px"/>
+	<img src="pictures/hilbert.gif" width="400px"/>
 	<img src="pictures/circle.png" width="400px"/>
-	<img src="pictures/bounce.png" width="400px"/>
+	<img src="pictures/bounce.gif" width="400px"/>
 	<img src="pictures/fizzbuzz.png" width="400px"/>
 	<img src="pictures/square.png" width="400px"/>
 </p>

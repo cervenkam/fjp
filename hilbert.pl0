@@ -17,7 +17,7 @@ procedure drawpixel;
 	//waits a bit
 	procedure wait;
 		//BIOS call for waiting... (objdump)
-		execute 0xb48631c9ba0008cd15;
+		execute 0xb48631c9ba0000cd15;
 	begin
 		//copy position and color into current scope
 		x:=last_x;
