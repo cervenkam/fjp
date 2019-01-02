@@ -3,8 +3,9 @@ Minimalistic compiler from extended PL/0 to unreal mode x86 instructions.
 
 ## Prerequisities
 It is designed to be run on Linux OS. If you are interested in another
-OS, you will need to rewrite at least compilation script (`compile.sh`)
-and execution script (`run.sh`) to make it work.
+OS, you will need to rewrite at least compilation script
+([`compile.sh`](compile.sh)) and execution script ([`run.sh`](run.sh))
+to make it work.
 ### Execution only
 * JRE 1.8+
 * qemu-system-i386 (highly recommended)
