@@ -106,7 +106,8 @@ public class I386 extends pl0BaseListener{
 			pl0Parser parser = new pl0Parser(tokens);
 			new ParseTreeWalker().walk(new I386(out,parser),parser.program());
 		}catch(Exception e){
-			error("Critical error: \""+e.getMessage()+"\"");
+			e.printStackTrace();
+			error("Compilation has been terminated");
 		}
 	}
 	/**
@@ -389,6 +390,34 @@ public class I386 extends pl0BaseListener{
 				add_program(0x66,0x31,0xd2);
 				hint("div ebx");
 				add_program(0x66,0xf7,0xf3);
+				break;
+			case "NOT":
+				hint("neg eax");
+				add_program(0x66,0xf7,0xd0);
+				break;
+			case "LEFT":
+				hint("mov cl,bl");
+				add_program(0x88,0xd9);
+				hint("shl eax,cl");
+				add_program(0x66,0xd3,0xe0);
+				break;
+			case "RIGHT":
+				hint("mov cl,bl");
+				add_program(0x88,0xd9);
+				hint("shr eax,cl");
+				add_program(0x66,0xd3,0xe8);
+				break;
+			case "AND":
+				hint("and eax,ebx");
+				add_program(0x66,0x21,0xd8);
+				break;
+			case "XOR":
+				hint("or eax,ebx");
+				add_program(0x66,0x31,0xd8);
+				break;
+			case "OR":
+				hint("or eax,ebx");
+				add_program(0x66,0x09,0xd8);
 				break;
 			case "=":
 				hint("jne <rel_addr>");
@@ -745,6 +774,26 @@ public class I386 extends pl0BaseListener{
 			pop_EAX();
 			switch_text(((TerminalNode)ctx.getChild(1)).getSymbol().getText());
 		}	
+	}
+	/**
+	 * Executes when parser exits logical expression
+	 * @param ctx Current context
+	 */
+	@Override public void exitLogical(pl0Parser.LogicalContext ctx){
+		int children = ctx.getChildCount();
+		if(children==3){
+			pop_EBX();
+			pop_EAX();
+			switch_text(((TerminalNode)ctx.getChild(1)).getSymbol().getText());
+			push_EAX();
+		}else if(children==2){
+			if(((TerminalNode)ctx.getChild(0))
+					.getSymbol().getText().equalsIgnoreCase("NOT")){
+				pop_EAX();
+				switch_text("NOT");
+				push_EAX();
+			}
+		}
 	}
 	/**
 	 * Executes when parser exits expression	

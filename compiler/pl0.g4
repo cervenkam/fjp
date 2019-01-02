@@ -33,7 +33,7 @@ label
    ;
 
 assignstmt
-   : ident ':=' expression
+   : ident ':=' logical
    ;
 
 callstmt
@@ -68,8 +68,13 @@ whilestmt
    ;
 
 condition
-   : ODD expression
-   | expression ('=' | '#' | '<' | '<=' | '>' | '>=') expression
+   : ODD logical
+   | logical ('=' | '#' | '<' | '<=' | '>' | '>=') logical
+   ;
+
+logical
+   : expression (LEFT | RIGHT | AND | OR | XOR) logical
+   | NOT? expression
    ;
 
 expression
@@ -85,7 +90,7 @@ term
 factor
    : ident
    | number
-   | '(' expression ')'
+   | '(' logical ')'
    ;
 
 ident
@@ -94,6 +99,30 @@ ident
 
 number
    : NUMBER
+   ;
+
+LEFT
+   : L E F T
+   ;
+
+RIGHT
+   : R I G H T
+   ;
+
+AND
+   : A N D
+   ;
+
+OR
+   : O R
+   ;
+
+XOR
+   : X O R
+   ;
+
+NOT
+   : N O T
    ;
 
 WRITE

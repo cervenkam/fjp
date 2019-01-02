@@ -5,7 +5,10 @@ while 0=0 do begin
 	//read variable
 	read x;
 	//square variable
-	x:=x*x;
+	//testing another operations too, result after following
+	//two lines should be only x*x
+	x:=not ((0xf xor ((x*x left 3) right 2)/2) xor 0xf);
+	x:=not ((x xor x) or (x and x));
 	//write variable
 	write x
 end.
