@@ -1,0 +1,468 @@
+\documentclass[a4paper]{article}
+\usepackage{pdflscape}
+\usepackage{fancyvrb}
+\usepackage{soul}
+\usepackage{url}
+\usepackage{graphicx}
+\usepackage{xcolor}
+\usepackage{listings}
+\usepackage{amsmath}
+\usepackage[czech]{babel}
+\definecolor{cervena}{rgb}{1,0,0}
+\definecolor{seda}{rgb}{.9,.9,.9}
+\definecolor{zelena}{rgb}{0,.5,0}
+\definecolor{modra}{rgb}{0,0,1} 
+\definecolor{jina}{rgb}{.3,0,0} 
+\lstset{
+	numberstyle=tiny,
+	basicstyle=\ttfamily,
+	keywordstyle=\color{modra}\bf\tt,
+	stringstyle=\color{cervena},
+	backgroundcolor=\color{seda},
+	captionpos=b,
+	breaklines=true,
+	tabsize=2,
+	frame=single,
+	escapechar=$
+}
+\begin{document}
+\begin{titlepage}
+	\includegraphics[width=0.5\textwidth]{logo.pdf}
+	\par
+	\centering
+	\vspace{2cm}
+	{\scshape\Huge P\v{r}eklada\v{c} PL/0 do x86\par}
+		\vspace{1cm}
+	{\scshape\large KIV/FJP - Semestr\'aln\'i pr\'ace\par}
+	\vfill
+	\raggedleft
+	\begin{table}[!ht]
+		\begin{tabular}{l l l}
+			t\'ym: & x86ka\v{r}i\\
+			studenti: & Martin \v{C}ervenka & \st{Zden\v{e}k Ziegler}\\
+			studijn\'i \v{c}\'isla: & A17N0029P & \st{A18N0104P}\\
+			emaily: & cervemar@students.zcu.cz & \st{zieglerz@students.zcu.cz}\\
+			odevzd\'an\'i: & \today\\
+			github: & \multicolumn{2}{l}
+				{\url{https://github.com/cervenkam/fjp}}
+		\end{tabular}
+	\end{table}
+\end{titlepage}
+\tableofcontents
+\clearpage
+\section{Zad\'an\'i}
+C\'ilem pr\'ace bude vytvo\v{r}en\'i p\v{r}eklada\v{c}e zvolen\'eho jazyka.
+Je mo\v{z}n\'e inspirovat se jazykem PL/0, vybrat si podmno\v{z}inu
+n\v{e}jak\'eho existuj\'ic\'iho jazyka nebo si navrhnout jazyk zcela vlastn\'i.
+D\'ale je tak\'e pot\v{r}eba zvolit si pro jakou architekturu bude jazyk
+p\v{r}ekl\'ad\'an (doporu\v{c}eny jsou instrukce PL/0, ale je mo\v{z}n\'e
+zvolit jakoukoliv instruk\v{c}n\'i sadu pro kterou budete m\'it interpret). 
+
+Jazyk mus\'i m\'it minim\'aln\v{e} n\'asleduj\'ic\'i konstrukce:
+
+\begin{itemize}
+\item definice celo\v{c}\'iseln\'ych prom\v{e}nn\'ych
+\item definice celo\v{c}\'iseln\'ych konstant
+\item p\v{r}i\v{r}azen\'i
+\item z\'akladn\'i aritmetiku a logiku (\texttt{+},\texttt{-},\texttt{*},
+	\texttt{/}, \texttt{AND}, \texttt{OR}, negace a z\'avorky,
+	oper\'atory pro porovn\'an\'i \v{c}\'isel)
+\item cyklus (libovoln\'y)
+\item jednoduchou podm\'inku (if bez else)
+\item definice podprogramu (procedura, funkce, metoda) a jeho vol\'an\'i
+\end{itemize}
+P\v{r}eklada\v{c} kter\'y bude um\v{e}t tyto z\'akladn\'i v\v{e}ci bude hodnocen
+deseti body. Dal\v{s}\'i body (alespo\v{n} do minim\'aln\'ich 20) je mo\v{z}n\'e
+z\'iskat na z\'aklad\v{e} roz\v{s}\'i\v{r}en\'i, jsou rozd\v{e}leny do dvou
+skupin, jednodu\v{s}\v{s}\'i za jeden bod a slo\v{z}it\v{e}j\v{s}\'i za dva
+a\v{z} t\v{r}i body. Dal\v{s}\'i roz\v{s}\'i\v{r}en\'i je mo\v{z}no doplnit po
+konzultaci, s ohodnocen\'im podle odhadnut\'e n\'aro\v{c}nosti. 
+
+Jednoduch\'a roz\v{s}\'i\v{r}en\'i (1 bod):
+
+\begin{itemize}
+\item ka\v{z}d\'y dal\v{s}\'i typ cyklu (\texttt{for}, \texttt{do ... while},
+	\texttt{while ... do}, \texttt{repeat ... until}, \texttt{foreach} pro pole)
+\item \texttt{else} v\v{e}tev
+\item datov\'y typ \texttt{boolean} a logick\'e operace s n\'im
+\item datov\'y typ \texttt{real} (s celo\v{c}\'iseln\'ymi instrukcemi)
+\item datov\'y typ \texttt{string} (s oper\'atory pro spojov\'an\'i
+	\v{r}\v{e}tezc\r{u})
+\item rozv\v{e}tven\'a podm\'inka (\texttt{switch}, \texttt{case})
+\item n\'asobn\'e p\v{r}i\v{r}azen\'i (\texttt{a = b = c = d = 3;})
+\item podm\'in\v{e}n\'e p\v{r}i\v{r}azen\'i / tern\'arn\'i oper\'ator
+	(\texttt{min = (a < b) ? a : b;})
+\item paraleln\'i p\v{r}i\v{r}azen\'i (\texttt{\{a, b, c, d} = {1, 2, 3, 4\};})
+\item p\v{r}\'ikazy pro vstup a v\'ystup (\texttt{read}, \texttt{write} --
+	pot\v{r}ebuje vhodn\'e instrukce kter\'e bude mo\v{z}n\'e vyu\v{z}\'it)
+\end{itemize}
+\clearpage
+slo\v{z}it\v{e}j\v{s}\'i roz\v{s}\'i\v{r}en\'i (2 body):
+
+\begin{itemize}
+\item p\v{r}\'ikaz \texttt{GOTO} (pozor na vzd\'alen\'e skoky)
+\item datov\'y typ \texttt{ratio} (s celo\v{c}\'iseln\'ymi instrukcemi)
+\item slo\v{z}en\'y datov\'y typ (\texttt{Record})
+\item pole a pr\'ace s jeho prvky
+\item oper\'ator pro porovn\'an\'i \v{r}et\v{e}zc\r{u}
+\item parametry p\v{r}ed\'avan\'e hodnotou
+\item n\'avratov\'a hodnota podprogramu
+\item objekty bez polymorfismu
+\item anonymn\'i vnit\v{r}n\'i funkce (lambda v\'yrazy)
+\end{itemize}
+
+Roz\v{s}\'i\v{r}en\'i vy\v{z}aduj\'ic\'i slo\v{z}it\v{e}j\v{s}\'i
+instruk\v{c}n\'i sadu ne\v{z} m\'a PL/0 (3 body):
+
+\begin{itemize}
+\item dynamicky p\v{r}i\v{r}azovan\'a pam\v{e}\v{t} - pr\'ace s ukazateli
+\item parametry p\v{r}ed\'avan\'e odkazem
+\item objektov\'e konstrukce s polymorfní\'im chov\'an\'im
+\item \texttt{instanceof} oper\'ator
+\item anonymn\'i vnit\v{r}n\'i funkce (lambda v\'yrazy) kter\'e lze p\v{r}edat
+	jako parametr
+\item mechanismus zpracov\'an\'i v\'yjimek
+\end{itemize}
+
+Vlastn\'i interpret (\v{r}\'adkov\'y, bez rozhran\'i, slo\v{z}it\'y alespo\v{n}
+jako roz\v{s}\'i\v{r}en\'a PL/0) je za 6 bod\r{u}. 
+\clearpage
+\section{Teoretick\'y \'uvod}
+P\v{r}eklada\v{c}e jsou ned\'ilnou sou\v{c}\'ast\'i dne\v{s}n\'ich
+po\v{c}\'ita\v{c}\r{u}. Mezi p\v{r}eklada\v{c}e lze \v{r}adit cokoliv,
+do \v{c}eho vstupuje n\v{e}jak\'y p\v{r}edem definovan\'y form\'at a na
+v\'ystupu je jin\'y, takt\'e\v{z} definovan\'y form\'at.
+Dne\v{s}n\'i ch\'ap\'an\'i pojmu p\v{r}eklada\v{c} se v\v{s}ak posunulo
+sm\v{e}rem k p\v{r}ekladu programovac\'ich jazyk\r{u}, a\v{t} u\v{z} mezi
+sebou nebo nap\v{r}\'iklad do strojov\'eho k\'odu procesoru.
+
+\subsection{Jazyk PL/0}
+Jazyk PL/0 v dne\v{s}n\'i dob\v{e} nen\'i tak roz\v{s}\'i\v{r}en, proto\v{z}e
+je p\v{r}\'ili\v{s} jednoduch\'y pro re\'aln\'e pou\v{z}it\'i, av\v{s}ak
+vych\'az\'i z jazyku Pascal a je vhodn\'y
+pro vytvo\v{r}en\'i jednoduch\'eho p\v{r}eklada\v{c}e.
+
+Tento jazyk disponuje pouze jednoduchou celo\v{c}\'iselnou
+aritmetikou, jednoduch\'ym v\v{e}tven\'im a jedn\'im druhem cyklu.
+Oproti dne\v{s}n\'im b\v{e}\v{z}n\'ym jazyk\r{u}m (C-like, Java atd.)
+ale naopak podporuje plnohodnotn\'e zano\v{r}en\'e procedury.
+
+Jazyk nen\'i s\'am o sob\v{e} pou\v{z}iteln\'y, proto\v{z}e nem\'a
+\v{z}\'adn\'y apar\'at pro vstup a v\'ystup ani z konzole ani
+ze souboru ani odjinud. To znamen\'a, \v{z}e bude n\v{e}co
+po\v{c}\'itat, co mus\'ime zadat p\v{r}i p\v{r}ekladu a v\'ysledek
+nem\'ame mo\v{z}nost b\v{e}\v{z}n\'ymi prost\v{r}edky z\'iskat. Proto
+je nutn\'e tento jazyk roz\v{s}\'i\v{r}it.
+\subsection{Procesor x86-64}
+Dnes jedn\'im z velmi pou\v{z}\'ivan\'ych procesor\r{u} v osobn\'ich
+po\v{c}\'ita\v{c}\'ich je architektury x86-64. Tato architektura je dnes
+a\v{z} 64bitov\'a, ale je zp\v{e}tn\v{e} kompatibiln\'i s 32bitov\'ym
+a 16bitov\'ym re\v{z}imem.
+
+Prav\v{e} v 16bitov\'em re\v{z}imu procesor startuje. V tomto re\v{z}imu
+dok\'a\v{z}e teoreticky adresovat pouze 64kB pam\v{e}ti, ale d\'iky
+segmentaci m\'a vlastn\v{e} adresaci 20bity, tedy 1MB pam\v{e}ti. Do
+n\v{e}kter\'ych \v{c}\'ast\'i t\'eto segmentovan\'e pam\v{e}ti se na\v{c}te
+nap\v{r}. BIOS, nebo se rezervuje pro video pam\v{e}\v{t}, co\v{z} redukuje
+rozsah pou\v{z}iteln\'e pam\v{e}ti na 640kB\footnote{640KB
+ought to be enough for anybody.}. Tento re\v{z}im byl d\v{r}\'ive
+p\v{r}i p\v{r}edstaven\'i i8086 jedin\'ym, s n\'astupem nov\v{e}j\v{s}\'i
+procesor\r{u} s chr\'an\v{e}n\'ym re\v{z}imem se tomuto 16bitov\'emu
+re\v{z}imu za\v{c}alo \v{r}\'ikat re\'aln\'y.
+
+Tato pr\'ace se konkr\'etn\v{e} bude zab\'yvat p\v{r}eklada\v{c}em z
+jazyka PL/0 do strojov\'eho k\'odu instrukc\'i dnes b\v{e}\v{z}n\v{e}
+pou\v{z}\'ivan\'eho procesoru x86 v 16bitov\'em re\'al\-n\'em re\v{z}imu.
+\clearpage
+\section{Platforma}
+U p\v{r}eklada\v{c}e se musej\'i definovat dv\v{e} platformy, jedna je ta
+zdrojov\'a, tedy v jak\'em programovac\'im jazyce se program programuje,
+a druh\'a je c\'ilov\'a, tedy pro jak\'y syst\'em se bude program
+p\v{r}ekl\'adat.
+\subsection{Zdrojov\'a platforma}
+P\v{r}eklada\v{c} je naps\'an v programovac\'im jazyce Java, proto je
+kompatibiln\'i jak\'eko\-liv za\v{r}\'izen\'i, kde b\v{e}\v{z}\'i Java
+Virtual Machine (JVM) ve verzi alespo\v{n} 1.8.
+\subsection{Zdrojov\'y program}
+Jako zdrojov\'y (p\v{r}ekl\'adan\'y) programovac\'i jazyk byl zvolen jazyk
+PL/0, kter\'y byl roz\v{s}\'i\v{r}en oproti p\r{u}vodn\'i verzi.
+Jedn\'a se konkr\'etn\v{e} o tato roz\v{s}\'i\v{r}en\'i:
+
+\begin{itemize}
+\item v\v{e}tev \texttt{else}
+\item p\v{r}\'ikaz \texttt{read} a \texttt{write} pro \v{c}ten\'i/z\'apis z/do
+	konzole
+\item p\v{r}\'ikaz \texttt{execute}, kter\'y vykon\'a konkr\'etn\'i
+	zadan\'y strojov\'y k\'od (podrobnosti d\'ale)
+\item lok\'aln\'i \texttt{goto} skoky na zadan\'a n\'av\v{e}\v{s}t\'i
+	(\texttt{label})
+\item jedno\v{r}\'adkov\'e koment\'a\v{r}e za\v{c}\'inaj\'ic\'i znaky
+	\texttt{\textbackslash\textbackslash}
+\item logick\'e operace (\texttt{AND}, \texttt{OR}, \texttt{XOR}, \texttt{NOT})
+	a bitov\'e posuvy (\texttt{LEFT}, \texttt{RIGHT}), kter\'e takt\'e\v{z}
+	v p\r{u}vodn\'i PL/0 chyb\'i
+\end{itemize}
+
+\noindent
+Zjednodu\v{s}en\v{e} zapsan\'a gramatika je tak\'e uvedena v p\v{r}\'iloze
+\ref{app:gram}.
+\subsection{C\'ilov\'a platforma}
+Pro c\'ilovou platformu jsem zvolil instrukce procesoru x86. Co se t\'y\v{c}e
+softwarov\'e \v{c}\'asti, tak se program p\v{r}ekl\'ad\'a do bootovateln\'e
+podoby, proto nepot\v{r}ebuje \v{z}\'adn\'y opera\v{c}n\'i syst\'em, jedin\'y
+SW kter\'y v z\'akladn\'i verzi pot\v{r}ebuje, je vol\'an\'i BIOSu pro
+\v{c}ten\'i a z\'apis z konzole.
+\clearpage
+\section{U\v{z}ivatelsk\'a p\v{r}\'iru\v{c}ka}\label{sec:uziv}
+V t\'eto sekci je uvedna z\'akladn\'i manipulace s p\v{r}eklada\v{c}em.
+\subsection{Prerekvizity}
+Spu\v{s}t\v{e}n\'i je mo\v{z}n\'e prov\'est d\v{e}ma zp\r{u}soby.
+Doporu\v{c}en\'ym zp\r{u}sobem je pou\v{z}it\'i emul\'atoru (nap\v{r} emul\'ator
+\textbf{QEMU}), kde prakticky nem\r{u}\v{z}e doj\'it k tomu, aby
+p\v{r}elo\v{z}en\'y program provedl ne\v{z}\'adanou operaci typu
+maz\'an\'i/p\v{r}episov\'an\'i soubor\r{u} (nap\v{r} syst\'emov\'ych). Druh\'y
+zp\r{u}sob (na vlastn\'i riziko) je spu\v{s}t\v{e}n\'i p\v{r}\'imo na HW.
+Ob\v{e} mo\v{z}nosti budou diskutov\'any.
+\subsection{OS Linux a emul\'ator QEMU}
+P\v{r}ekl\'ad\'a-li se program na OS Linux, jsou dod\'any skripty pro
+p\v{r}eklad a spu\v{s}t\v{e}n\'i.
+\subsubsection{P\v{r}eklad programu}
+Pro p\v{r}eklad se pou\v{z}\'iv\'a skript \texttt{compile.sh} a m\'a dva
+nepovinn\'e parametry. Prvn\'im je cesta k p\v{r}ekl\'adan\'emu programu a
+m\'a p\v{r}ednastavenou hodntotu \texttt{hilbert.pl0}. Druh\'ym je cesta
+k vyprodukovan\'emu bin\'arn\'imu souboru -- p\v{r}ed\-nastaveno je
+\texttt{out.bin}. N\'asleduj\'ic\'i dva p\v{r}\'ikazy jsou tedy ekvivalentn\'i:
+\begin{verbatim}
+./compile.sh
+./compile.sh hilbert.pl0 out.bin
+\end{verbatim}
+\subsubsection{Spu\v{s}t\v{e}n\'i}
+Pro spu\v{s}t\v{e}n\'i je p\v{r}ipraven skript \texttt{run.sh} a m\'a jeden
+nepovinn\'y parametr, kter\'ym je p\v{r}elo\v{z}en\'y soubor (s defaultn\'i
+hodnotou \texttt{out.bin}. N\'asleduj\'ic\'i dva p\v{r}\'ikazy jsou tedy
+op\v{e}t ekvivalentn\'i:
+\begin{verbatim}
+./run.sh
+./run.sh out.bin
+\end{verbatim}
+Spust\'i se okno emul\'atoru a program se za\v{c}ne vykon\'avat. Je-li
+v programu p\v{r}\'ikaz \texttt{read}, tedy je-li vy\'v{z}adov\'an vstup
+od u\v{z}ivatele, tak ten se zad\'av\'a v bin\'arn\'i reprezentaci
+bez prefixu, tedy pouze \texttt{0} a \texttt{1}, jak\'akoliv jin\'a kl\'avesa
+ukon\v{c}\'i vstup. Vol\'an\'i v\'ypisu (\texttt{write}) tatk\'e\v{z}
+vypisuje v bin\'arn\'i podob\v{e}.
+\subsection{Jin\'y OS a emul\'ator QEMU}
+Pokud je program spou\v{s}t\v{e}n na jin\'em OS ne\v{z} linux, pak bude
+pravd\v{e}podobn\v{e} nutn\'e spustit p\v{r}eklad a program jin\'ym
+zp\r{u}sobem.
+
+Jednoduchou cestou lze postupovat jako v p\v{r}\'ipad\v{e} linuxu, akor\'at
+drobn\v{e} upravit skripty, aby na dan\'em OS fungovaly. Oba skripty byly
+ps\'any tak, aby byly co nejjednodu\v{s}\v{s}\'i, tak\v{z}e ka\v{z}d\'y
+z t\v{e}ch skript\r{u} obsahuje pouze jeden p\v{r}\'ikaz, kter\'y lze
+tedy zadat p\v{r}\'imo do konzole nebo ho takt\'e\v{z} upravit.
+
+P\v{r}\'ikazy, kter\'e by se musely upravit jsou:
+\begin{verbatim}
+java -jar compiler.jar $1 $2 
+qemu-system-i386 -drive file=${1:-out.bin},format=raw
+\end{verbatim}
+\subsection{Spu\v{s}t\v{e}n\'i p\v{r}\'imo na HW}
+Tento krok nemohu doporu\v{c}it, proto\v{z}e program bude spu\v{s}t\v{e}n
+v tzv. re\'aln\'em m\'odu a m\r{u}\v{z}e teoreticky po\v{s}kodit
+n\v{e}jak\'e SW vybaven\'i po\v{c}\'ita\v{c}e. P\v{r}eklad programu se
+provede stejn\v{e} jako je uvedeno v\'y\v{s}e, postup se li\v{s}\'i a\v{z}
+v p\v{r}\'ipad\v{e} spu\v{s}t\v{e}n\'i.
+
+Program se nakop\'iruje na za\v{c}\'atek
+pam\v{e}ti bootovateln\'eho m\'edia (nap\v{r}. flash nebo HDD), toho
+lze v linuxu dos\'ahnout nap\v{r}. p\v{r}\'ikazem \texttt{dd}. V BIOSu se
+p\v{r}\'ipad\-n\v{e} nastav\'i bootov\'an\'i z toho media a n\'asledn\v{e}
+po\v{c}\'ita\v{c} p\v{r}i bootov\'an\'i program spust\'i. V\'yhoda tohoto
+postupu je v tom, \v{z}e program nebude emulov\'an a bude se vykon\'avat
+rychleji. Nev\'yhodou je slo\v{z}it\v{e}j\v{s}\'i postup spu\v{s}t\v{e}n\'i a
+hlavn\v{e} nebezpe\v{c}\'i po\v{s}kozen\'i SW dan\'eho po\v{c}\'ita\v{c}e.
+Tento postup by m\v{e}l prov\'est pouze pokro\v{c}il\'y u\v{z}ivatel se
+znalost\'i p\v{r}ekl\'adan\'eho programu.
+\clearpage
+\section{Struktura projektu}
+Projekt krom\v{e} tohoto souboru obsahuje p\v{e}t slo\v{z}ek, bashovs\'e
+skripty \texttt{*.sh},
+testovac\'i p\v{r}ekl\'adan\'e soubory \texttt{*.pl0}, p\v{r}elo\v{z}en\'y
+p\v{r}eklada\v{c} \texttt{compiler.jar},
+ANTLR jazykov\'y processor \texttt{antlr.jar}, a markdownov\'y soubor
+\texttt{README.md}.
+\subsection{Podslo\v{z}ky projektu}
+Projekt obsahuje p\v{e}t podslo\v{z}ek. Prvn\'i slo\v{z}ka je \texttt{bin},
+kde jsou ulo\v{z}eny p\v{r}elo\v{z}en\'e programy. Druh\'a slo\v{z}ka
+\texttt{compiler} obsahuje zdrojov\'e soubory p\v{r}eklada\v{c}e v jazyce
+Java. T\v{r}et\'i podslo\v{z}kou je \texttt{kernel}, kde je zdrojov\'y soubor
+zav\'ad\v{e}n\'eho j\'adra v jazyce symbolick\'ych adres, kter\'y program
+spou\v{s}t\'i. D\'ale n\'asleduje slo\v{z}ka \texttt{pictures} se sn\'imky
+b\v{e}hu testovac\'ich program\r{u} a nakonec slo\v{z}ka \texttt{shouldfail}
+obsahuje zdrojov\'e soubory, kter\'e jsou sice syntakticky spr\'av\-n\v{e},
+ale nejsou spr\'av\-n\v{e} s\'emanticky a nem\v{e}lo by mo\v{z}n\'e je
+p\v{r}elo\v{z}it, resp. p\v{r}eklad se ukon\v{c}\'i chybou.
+\subsection{Bash skripty}
+V rootu projektu se nach\'az\'i p\v{e}t bashovs\'ych skript\r{u}. Dva z nich
+\texttt{compile.sh} a \texttt{run.sh} jsou ji\v{z} pops\'any v
+sekci \ref{sec:uziv}. Dal\v{s}\'im je skript \texttt{build.sh}. Ten se
+mus\'i spustit v p\v{r}\'ipad\v{e}, \v{z}e se m\v{e}n\'i zdrojov\'e
+soubory p\v{r}eklada\v{c}e (\texttt{*.java}) nebo j\'adra (\texttt{loader.asm}).
+Dal\v{s}\'im skriptem je \texttt{debug.sh}, kter\'y vyp\'i\v{s}e v
+jazyce symbolick\'ych adres, co vlastn\v{e} program d\v{e}l\'a.
+Posledn\'im je \texttt{clean.sh}, kter\'y ma\v{z}e soubory kter\'e
+se generuj\'i p\v{r}i p\v{r}ekladu.
+\subsection{P\v{r}ekl\'adan\'e programy}
+Projekt dod\'av\'a p\v{e}t p\v{r}edp\v{r}ipraven\'ych testovac\'ich zdrojov\'ych
+soubor\r{u} s koncovkou \texttt{pl0}. V\'ystup t\v{e}ch
+nejzaj\'imav\v{e}j\v{s}\'ich je zn\'azorn\v{e}n na obr\'azc\'ich
+\ref{obr:hilbert} a \ref{obr:circle} v p\v{r}\'iloze \ref{app:obr}, dal\v{s}\'i
+obr\'azky jsou ve slo\v{z}ce \texttt{pictures}.
+\subsection{P\v{r}eklada\v{c}}
+Spustiteln\'y soubor p\v{r}eklada\v{c}e je soubor \texttt{compiler.jar}. K tomu
+aby fungoval pot\v{r}ebuje m\'it ve stejn\'e pracovn\'i slo\v{z}ce i soubor
+\texttt{antlr.jar}
+\subsection{Veden\'i projektu}
+Projekt je verzov\'an programem \texttt{git} a veden na webov\'e str\'ance
+Githubu na adrese \url{https://github.com/cervenkam/fjp}. 
+\clearpage
+\section{P\v{r}\'iklad p\v{r}ekladu}
+M\v{e}jme minim\'aln\'i program uveden\'y v \ref{program}.
+Program pouze alokuje na z\'asobn\'iku jednu prom\v{e}nnou, p\v{r}i\v{r}ad\'i
+j\'i hodnotu 3 a tuto hodnotu tak\'e vyp\'i\v{s}e.
+
+\begin{figure}[!ht]
+\centering
+\begin{Verbatim}[commandchars=\\\{\}]
+\textcolor{red}{var x;}
+\textcolor{blue}{begin}
+	\textcolor{zelena}{x:=3;}
+	\textcolor{jina}{write x;}
+\textcolor{magenta}{end.}
+\end{Verbatim}
+\caption{P\v{r}ekl\'adan\'y program}
+\label{program}
+\end{figure}
+
+P\v{r}elo\v{z}en\'im
+z\'isk\'ame strojov\'y k\'od, kter\'y kdy\v{z} p\v{r}evedeme do jazyka
+symbolick\'ych adres, bude vypadat jak je uvedeno v \ref{objdump}.
+
+\begin{figure}[!ht]
+\centering
+\begin{Verbatim}[commandchars=\\\{\}]
+00000200 <.data+0x200>:
+ 200: \textcolor{blue}{66 67 c8} \textcolor{red}{04 00} \textcolor{blue}{01}    \textcolor{blue}{addr32 enter} \textcolor{red}{0x4}\textcolor{blue}{,0x1}
+ 206: \textcolor{blue}{66 e9 00 00 00 00    jmp    0x20c}
+ 20c: \textcolor{zelena}{66 89 e8             mov    eax,ebp}
+ 20f: \textcolor{zelena}{66 2d 08 00 00 00    sub    eax,0x8}
+ 215: \textcolor{zelena}{66 67 50             addr32 push eax}
+ 218: \textcolor{zelena}{66 67 68 03 00 00 00 addr32 push 0x3}
+ 21f: \textcolor{zelena}{66 67 58             addr32 pop eax}
+ 222: \textcolor{zelena}{66 67 5b             addr32 pop ebx}
+ 225: \textcolor{zelena}{66 67 36 89 03       mov    DWORD PTR ss:[ebx],eax}
+ 22a: \textcolor{jina}{66 89 e8             mov    eax,ebp}
+ 22d: \textcolor{jina}{66 2d 08 00 00 00    sub    eax,0x8}
+ 233: \textcolor{jina}{66 67 50             addr32 push eax}
+ 236: \textcolor{jina}{66 67 5b             addr32 pop ebx}
+ 239: \textcolor{jina}{66 67 36 8b 03       mov    eax,DWORD PTR ss:[ebx]}
+ 23e: \textcolor{jina}{9a 80 01 c0 07       call   0x7c0:0x180}
+ 243: \textcolor{magenta}{66 67 c9             addr32 leave}
+ 246: \textcolor{magenta}{eb fe                jmp    0x246}
+\end{Verbatim}
+\caption{P\v{r}elo\v{z}en\'y program, vygenerov\'ano pomoc\'i \texttt{debug.sh}}
+\label{objdump}
+\end{figure}
+
+Prom\v{e}nn\'a se alokuje instrukc\'i \texttt{enter}, kter\'a pro 32bitovou
+prom\v{e}nnou alokuje \texttt{0x4} bajty. Tato prom\v{e}nn\'a bude ulo\v{z}ena
+na z\'asobn\'iku na pozici \texttt{ebp-0x8}. Aby se prom\v{e}nn\'a nastavila na
+hodnotu 3, nejprve se na\v{c}te jej\'i adresa a vlo\v{z}\'i se do z\'asobn\'iku
+(prvn\'i t\v{r}i zelen\'e instrukce), pot\'e se do z\'asobn\'iku vlo\v{z}\'i i
+p\v{r}i\v{r}azovan\'a hodnota, tedy \texttt{0x3}, nakonec se hodnota i adresa
+ze z\'asobn\'iku vyberou a hodnota se na adresu vlo\v{z}\'i.
+
+V dal\v{s}\'im p\v{r}\'ikazu v\'ypisu se op\v{e}t na\v{c}te adresa
+prom\v{e}nn\'e \texttt{x} (prvn\'i t\v{r}i tmav\v{e} \v{c}erven\'e instrukce),
+pot\'e se vrchol z\'asobn\'iku dereferencuje a vlo\v{z}\'i do registru
+\texttt{eax} (n\'asleduj\'ic\'i dv\v{e} instrukce) a nakonec se zavol\'a
+v\'ypis, o kter\'y se star\'a j\'adro a vypisuje hodnotu registru \texttt{eax}.
+
+Nakonec se dealokuje prom\v{e}nn\'a \texttt{x} a program je \uv{ukon\v{c}en}
+zacyklen\'im na jedn\'e instrukci.
+
+\section{Z\'av\v{e}r}
+Co se t\'y\v{c}e negativn\'ich vlastnost\'i, p\v{r}ekl\'adan\'y jazyk
+nedisponuje formou p\v{r}\'im\'eho p\v{r}ed\'av\'an\'i parametr\r{u}.
+To je sice mo\v{z}n\'e obejt\'it pomoc\'i glob\'aln\'ich a lok\'aln\'ich
+prom\v{e}nn\'ych, ale d\v{e}l\'a to k\'od ne\v{c}iteln\'ym (viz program
+\texttt{hilbert.pl0}). P\v{r}eklada\v{c} takt\'e\v{z} neposkytuje
+z\'avratn\'e optimalizace. V\v{e}t\v{s}inu \v{c}asu pouze vkl\'ad\'a
+a vyb\'ir\'a ze z\'asobn\'iku m\'isto p\v{r}\'im\'eho v\'ypo\v{c}tu v
+registrech.
+
+I p\v{r}esto zde p\v{r}edstaven\'y p\v{r}eklada\v{c} dok\'a\v{z}e
+p\v{r}elo\v{z}it i slo\v{z}it\v{e}j\v{s}\'i program, nap\v{r}\'i\-klad zde
+uveden\'y rekurzivn\'i v\'ypo\v{c}et a vykreslen\'i Hilbertovy k\v{r}ivky.
+Jazyk PL/0 byl roz\v{s}\'i\v{r}en o n\v{e}kolik syntaktick\'ych v\'yraz\r{u}.
+P\v{r}eklada\v{c} byl otestov\'an na n\v{e}kolika programech s pozitivn\'imi
+v\'ysledky a byl t\'e\v{z} testov\'an na programy, kter\'e jsou s\'emanticky
+chybn\'e, takt\'e\v{z} \'usp\v{e}\v{s}n\v{e}. Program nen\'i z\'avisl\'y
+na \v{z}\'adn\'em SW (krom\v{e} BIOSu) a je mo\v{z}n\'e ho spustit
+na libovoln\'em procesoru architekturou kompatibiln\'i s i386.
+
+\section{Reference}
+\begin{itemize}
+\item Instrukce 80386: \url{https://pdos.csail.mit.edu/6.828/2007/readings/i386/c17.htm}
+\item Instrukce x86: \url{https://www.felixcloutier.com/x86/}
+\item Dokumentace ANTLR: \url{https://www.antlr.org/api/Java/index.html}
+\item P\v{r}eru\v{s}en\'i BIOSu: \url{http://www.ctyme.com/intr/int.htm}
+\item J\'adro OS: \url{https://github.com/cervenkam/os}
+\item Github projektu: \url{https://github.com/cervenkam/fjp}
+\end{itemize}
+\clearpage
+\appendix
+\begin{landscape}
+\section{Gramatika jazyka}\label{app:gram}
+\begin{lstlisting}[language=make]
+program = block "." .
+block = [ "const" ident "=" number {"," ident "=" number} ";"]
+        [ "var" ident {"," ident} ";"]
+        { "procedure" ident ";" block ";" } statement .
+statement = [ ident ":=" logical
+              | "call" ident 
+              | "read" ident
+              | "write" expression 
+              | "begin" statement {";" statement } "end" 
+              | "if" condition "then" statement [ "else" statement ]
+              | "goto" label
+              | "execute" "0x" hexstring
+              | "while" condition "do" statement ].
+label = "label" ident.
+condition = "odd" logical |
+            logical ("="|"#"|"<"|"<="|">"|">=") logical .
+logical = [ "not" ] expression
+            | expression ("and"|"or"|"xor"|"left"|"right") logical.
+expression = expression { ("+"|"-") term}
+               | ["+"|"-"] term.
+term = factor {("*"|"/") factor}.
+factor = ident | number | "(" logical ")".
+\end{lstlisting}
+\end{landscape}
+\clearpage
+\section{Obr\'azky program\r{u}}\label{app:obr}
+\begin{figure}[!ht]
+	\centering
+	\includegraphics[width=.8\textwidth]{../pictures/hilbert.png}
+	\caption{V\'ystup programu \texttt{hilbert.pl0}.}
+	\label{obr:hilbert}
+\end{figure}
+\begin{figure}[!ht]
+	\centering
+	\includegraphics[width=.8\textwidth]{../pictures/circle.png}
+	\caption{V\'ystup programu \texttt{circle.pl0}.}
+	\label{obr:circle}
+\end{figure}
+\clearpage
+\end{document}
