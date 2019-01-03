@@ -91,7 +91,7 @@ public class I386 extends pl0BaseListener{
 			if(args.length>0){
 				in=args[0];
 			}else{
-				System.err.println("First argument (input source file) is not"+
+				System.err.println("First argument (input source file) is not "+
 					"defined, using "+in);
 			}
 			String out = "out.bin";
